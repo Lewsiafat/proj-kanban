@@ -188,9 +188,28 @@ async function api(method, path, body) {
   return res.json()
 }
 
+// ── Column order (localStorage) ─────────────────────────────
+const ORDER_KEY = 'kanban-col-order'
+
+function saveOrder() {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(state.projects.map(p => p.id)))
+}
+
+function applyOrder(projects) {
+  try {
+    const order = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]')
+    if (!order.length) return projects
+    return [
+      ...order.map(id => projects.find(p => p.id === id)).filter(Boolean),
+      ...projects.filter(p => !order.includes(p.id))   // new projects go to end
+    ]
+  } catch { return projects }
+}
+
 // ── Load ────────────────────────────────────────────────────
 async function load() {
-  state.projects = await api('GET', '/projects')
+  const raw = await api('GET', '/projects')
+  state.projects = applyOrder(raw)
   render()
 }
 
@@ -276,10 +295,11 @@ function initDragDrop() {
       col.classList.remove('drag-over')
       const targetIdx = state.projects.findIndex(p => p.id === parseInt(col.dataset.projId))
       if (dragSrcIdx === null || dragSrcIdx === targetIdx) return
-      // Reorder in state
+      // Reorder in state and persist
       const [moved] = state.projects.splice(dragSrcIdx, 1)
       state.projects.splice(targetIdx, 0, moved)
       dragSrcIdx = null
+      saveOrder()
       render()
     })
   })
