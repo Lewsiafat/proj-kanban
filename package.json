@@ -1,0 +1,15 @@
+{
+  "name": "proj-kanban",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Kanban-style project status tracker",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "express": "^4.18.2"
+  }
+}
