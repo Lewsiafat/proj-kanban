@@ -322,7 +322,7 @@
 <footer>
   <span>📋 Project Kanban</span>
   <span class="footer-badge" id="pendingBadge">🟡 待處理 0</span>
-  <span class="footer-ver" id="footerVer">v1.0.0</span>
+  <span class="footer-ver" id="footerVer">v1.0.1</span>
 </footer>
 
 <!-- Project Modal -->
@@ -433,7 +433,7 @@ function render() {
     col.innerHTML = `
       <div class="col-header">
         <button class="drag-handle" title="拖曳排序">⠿</button>
-        <div class="col-dot" style="background:${p.color}"></div>
+        <div class="col-dot" style="background:${esc(p.color)}"></div>
         <div class="col-title" onclick="openProjectModal(${p.id})">${esc(p.name)}</div>
         <span class="col-count">${p.cards.length}</span>
         <div class="col-actions">

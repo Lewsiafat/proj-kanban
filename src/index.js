@@ -75,10 +75,14 @@ r.put('/projects/:id', (req, res) => {
   const { name, color } = req.body
   const proj = db.prepare(`SELECT * FROM projects WHERE id = ?`).get(req.params.id)
   if (!proj) return res.status(404).json({ error: 'not found' })
-  db.prepare(`UPDATE projects SET name = ?, color = ? WHERE id = ?`).run(
-    name ?? proj.name, color ?? proj.color, proj.id
-  )
-  res.json(db.prepare(`SELECT * FROM projects WHERE id = ?`).get(proj.id))
+  try {
+    db.prepare(`UPDATE projects SET name = ?, color = ? WHERE id = ?`).run(
+      name ?? proj.name, color ?? proj.color, proj.id
+    )
+    res.json(db.prepare(`SELECT * FROM projects WHERE id = ?`).get(proj.id))
+  } catch (e) {
+    res.status(400).json({ error: e.message })
+  }
 })
 
 // DELETE /api/projects/:id
