@@ -1,8 +1,8 @@
 # proj-kanban
 
-輕量 Kanban 式專案狀態追蹤工具。直欄為專案，卡片為狀態更新單位，支援 memo 備忘與 REST API。
+A lightweight Kanban-style project status tracker. Each column is a project, each card is a status update — with memo notes and a REST API.
 
-**Live：** https://lewsi.ddns.net/proj-kanban/
+> 輕量 Kanban 式專案狀態追蹤工具。直欄為專案，卡片為狀態更新單位，支援 memo 備忘與 REST API。
 
 ## 功能
 
@@ -11,12 +11,36 @@
 - 全 CRUD：新增、編輯、刪除專案與卡片
 - REST API，可程式化操作
 
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/Lewsiafat/proj-kanban.git
+cd proj-kanban
+
+# Install
+npm install
+
+# Configure (optional)
+cp .env.sample .env
+
+# Run
+npm start
+# Open http://localhost:10023/proj-kanban/
+```
+
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `10023` | Server port |
+| `BASE_PATH` | `proj-kanban` | URL base path |
+| `DATA_DIR` | `./data` | SQLite database directory |
+
 ## Dev
 
 ```bash
-npm install
-npm run dev   # node --watch src/index.js
-# 開 http://localhost:10023/proj-kanban/
+npm run dev   # hot-reload with node --watch
 ```
 
 ## API
@@ -36,6 +60,17 @@ Status 值：`active` | `pending` | `done` | `blocked` | `archived`
 
 ## Stack
 
-- Node.js + Express（ES Modules）
-- better-sqlite3（SQLite，資料存於 `data/kanban.db`）
-- 純 HTML/CSS/JS 前端（無 build step）
+- **Backend**: Node.js + Express (ES Modules)
+- **Database**: better-sqlite3 (SQLite, stored at `data/kanban.db`)
+- **Frontend**: Vanilla HTML/CSS/JS (no build step)
+
+## Self-hosting
+
+The app is a single Express server. Deploy anywhere Node.js runs:
+
+- **VPS**: Run with `node src/index.js`, put behind nginx
+- **Railway / Render**: Set env vars, deploy directly
+
+## License
+
+MIT
