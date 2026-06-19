@@ -150,6 +150,8 @@
   }
   .col-body::-webkit-scrollbar { width: 5px; }
   .col-body::-webkit-scrollbar-thumb { background: var(--border-st); border-radius: 999px; }
+  /* hide scrollbar while the column frame height is animating */
+  .col.h-anim .col-body { overflow: hidden; }
 
   .card {
     background: var(--surface2);
@@ -165,6 +167,8 @@
     box-shadow: var(--shadow-md);
     border-color: var(--border-st);
   }
+  /* disable CSS transition while gsap drives the entrance (avoids a 140ms transform tail) */
+  .card.anim { transition: none; }
   .card-title {
     font-family: var(--font-head); font-size: 14px; font-weight: 500;
     line-height: 1.35; color: var(--text);
@@ -299,12 +303,26 @@
     flex-shrink: 0; font-size: 12px; color: var(--text2);
     background: color-mix(in oklab, var(--bg) 70%, var(--surface2));
   }
-  .footer-badge {
+  .status-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .filter-chip {
     display: inline-flex; align-items: center; gap: 5px;
-    background: color-mix(in oklab, var(--warn) 18%, transparent);
-    color: color-mix(in oklab, var(--warn) 80%, var(--text) 40%);
-    padding: 2px 10px; border-radius: 999px; font-weight: 600;
+    padding: 2px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 600; line-height: 1.6;
+    border: 1px solid transparent; cursor: pointer; user-select: none;
+    font-family: var(--font-body);
+    transition: all 140ms var(--ease);
   }
+  .filter-chip:not(.active) {
+    background: color-mix(in oklab, var(--text2) 12%, transparent);
+    color: var(--text2);
+  }
+  .filter-chip:not(.active):hover {
+    color: var(--text);
+    background: color-mix(in oklab, var(--text2) 20%, transparent);
+  }
+  .filter-chip.active { box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 30%, transparent); }
+  .filter-chip.chip-all.active { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
+  .filter-chip .chip-count { font-variant-numeric: tabular-nums; opacity: .8; }
   .footer-ver { margin-left: auto; font-size: 11px; color: var(--text2); }
 </style>
 </head>
@@ -321,7 +339,7 @@
 
 <footer>
   <span>📋 Project Kanban</span>
-  <span class="footer-badge" id="pendingBadge">🟡 待處理 0</span>
+  <div class="status-bar" id="statusBar"></div>
   <span class="footer-ver" id="footerVer">v1.0.1</span>
 </footer>
 
@@ -375,11 +393,20 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script>
 const BASE = window.location.pathname.replace(/\/$/, '')
 const API  = BASE + '/api'
 
 const COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#f97316','#64748b']
+
+const STATUSES = [
+  { key: 'active',   label: '進行中', emoji: '🟣' },
+  { key: 'pending',  label: '待處理', emoji: '🟡' },
+  { key: 'done',     label: '完成',   emoji: '🟢' },
+  { key: 'blocked',  label: '卡住了', emoji: '🔴' },
+  { key: 'archived', label: '封存',   emoji: '⚪' },
+]
 
 let state = { projects: [] }
 let editing = { type: null, id: null, projectId: null }
@@ -413,6 +440,22 @@ function applyOrder(projects) {
   } catch { return projects }
 }
 
+// ── Status filter (localStorage) ────────────────────────────
+const FILTER_KEY = 'kanban-status-filter'
+let activeStatuses = new Set(loadFilter())
+
+function loadFilter() {
+  try { return JSON.parse(localStorage.getItem(FILTER_KEY) || '[]') } catch { return [] }
+}
+
+function saveFilter() {
+  localStorage.setItem(FILTER_KEY, JSON.stringify([...activeStatuses]))
+}
+
+function matchesFilter(c) {
+  return activeStatuses.size === 0 || activeStatuses.has(c.status)
+}
+
 // ── Load ────────────────────────────────────────────────────
 async function load() {
   const raw = await api('GET', '/projects')
@@ -423,6 +466,9 @@ async function load() {
 // ── Render ──────────────────────────────────────────────────
 function render() {
   const board = document.getElementById('board')
+  // capture current column heights so we can animate the frame when card count changes
+  const prevColHeights = {}
+  board.querySelectorAll('.col').forEach(col => { prevColHeights[col.dataset.projId] = col.offsetHeight })
   board.innerHTML = ''
 
   state.projects.forEach(p => {
@@ -441,7 +487,7 @@ function render() {
         </div>
       </div>
       <div class="col-body" id="col-${p.id}">
-        ${p.cards.map(c => cardHTML(c)).join('')}
+        ${p.cards.filter(matchesFilter).map(c => cardHTML(c)).join('')}
       </div>
       <button class="add-card-btn" onclick="openCardModal(${p.id})">＋ 新增更新</button>
     `
@@ -455,13 +501,94 @@ function render() {
   board.appendChild(addCol)
 
   initDragDrop()
-  updateFooter()
+  renderStatusBar()
+  flipColHeights(board, prevColHeights)
 }
 
-function updateFooter() {
-  const pending = state.projects.reduce((sum, p) =>
-    sum + p.cards.filter(c => c.status === 'pending').length, 0)
-  document.getElementById('pendingBadge').textContent = `🟡 待處理 ${pending}`
+// Animate each column's outer frame between its old and new height when its
+// card count changes (add / delete / filter). Target height is pre-measured.
+function flipColHeights(board, prev) {
+  if (!window.gsap) return
+  board.querySelectorAll('.col').forEach(col => {
+    const from = prev[col.dataset.projId]
+    if (from == null) return             // newly added column — nothing to animate from
+    const to = col.offsetHeight
+    if (Math.abs(from - to) < 2) return  // height unchanged
+    col.classList.add('h-anim')
+    gsap.fromTo(col,
+      { height: from },
+      { height: to, duration: .3, ease: 'power2.out', clearProps: 'height',
+        onComplete: () => col.classList.remove('h-anim') })
+  })
+}
+
+function renderStatusBar() {
+  const counts = {}
+  let total = 0
+  STATUSES.forEach(s => { counts[s.key] = 0 })
+  state.projects.forEach(p => p.cards.forEach(c => {
+    total++
+    if (counts[c.status] !== undefined) counts[c.status]++
+  }))
+  const allChip = `
+    <button class="filter-chip chip-all ${activeStatuses.size === 0 ? 'active' : ''}"
+            onclick="clearFilter()">全部 <span class="chip-count">${total}</span></button>`
+  const statusChips = STATUSES.map(s => `
+    <button class="filter-chip status-${s.key} ${activeStatuses.has(s.key) ? 'active' : ''}"
+            onclick="toggleStatus('${s.key}')">
+      ${s.emoji} ${s.label} <span class="chip-count">${counts[s.key]}</span>
+    </button>`).join('')
+  document.getElementById('statusBar').innerHTML = allChip + statusChips
+}
+
+// statuses actually shown for a filter set (empty set = all shown)
+function visibleSet(set) {
+  return set.size === 0 ? new Set(STATUSES.map(s => s.key)) : new Set(set)
+}
+
+function toggleStatus(status) {
+  const before = new Set(activeStatuses)
+  if (activeStatuses.has(status)) activeStatuses.delete(status)
+  else activeStatuses.add(status)
+  saveFilter()
+  applyFilter(before)
+}
+
+function clearFilter() {
+  if (activeStatuses.size === 0) return
+  const before = new Set(activeStatuses)
+  activeStatuses.clear()
+  saveFilter()
+  applyFilter(before)
+}
+
+// Animate only the cards whose visibility changed: newly-hidden fade out,
+// newly-shown fade in. Cards that stay visible are never touched (no drift).
+// Reflow of remaining cards is instant by design (no FLIP).
+function applyFilter(before) {
+  const board = document.getElementById('board')
+  const enteringStatuses = [...visibleSet(activeStatuses)].filter(s => !visibleSet(before).has(s))
+  const leavingEls = [...board.querySelectorAll('.card')]
+    .filter(el => !matchesFilter({ status: el.dataset.status }))
+
+  const rerender = () => {
+    render()
+    if (window.gsap && enteringStatuses.length) {
+      const enterEls = [...board.querySelectorAll('.card')]
+        .filter(el => enteringStatuses.includes(el.dataset.status))
+      enterEls.forEach(el => el.classList.add('anim'))
+      gsap.from(enterEls, {
+        opacity: 0, y: 8, duration: .26, stagger: .02, ease: 'power2.out', clearProps: 'all',
+        onComplete: () => enterEls.forEach(el => el.classList.remove('anim')),
+      })
+    }
+  }
+
+  if (window.gsap && leavingEls.length) {
+    gsap.to(leavingEls, { opacity: 0, duration: .16, stagger: .015, onComplete: rerender })
+  } else {
+    rerender()
+  }
 }
 
 // ── Drag & Drop ──────────────────────────────────────────────
@@ -524,7 +651,7 @@ function cardHTML(c) {
   const date = c.updated_at.slice(0,10)
   const memo = c.memo ? `<div class="card-memo">${esc(c.memo)}</div>` : ''
   return `
-    <div class="card" onclick="openCardModal(${c.project_id}, ${c.id})">
+    <div class="card" data-status="${c.status}" onclick="openCardModal(${c.project_id}, ${c.id})">
       <div class="card-title">${esc(c.title)}</div>
       <div class="card-meta">
         <span class="card-status status-${c.status}">${labels[c.status] || c.status}</span>
