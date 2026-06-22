@@ -58,6 +58,12 @@ DELETE /proj-kanban/api/cards/:id
 
 Status 值：`active` | `pending` | `done` | `blocked` | `archived`
 
+## AI Agent Skill
+
+A bundled Claude skill (`.claude/skills/proj-kanban-api/`) teaches AI agents to drive the board over this REST API — endpoint selection, correct request bodies, and the footguns — so agents don't have to guess the API shape. Agents that have the repo discover it automatically; it can also be copied into another project's `.claude/skills/` or `~/.claude/skills/`.
+
+> 內建 AI agent skill,教 agent 透過 REST API 操作看板(端點選擇、正確 request body、各種陷阱),可隨 repo 分發或複製到其他專案使用。
+
 ## Stack
 
 - **Backend**: Node.js + Express (ES Modules)

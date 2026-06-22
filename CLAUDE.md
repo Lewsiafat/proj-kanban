@@ -20,6 +20,8 @@ A single Express server (`src/index.js`, ~140 lines) serves both a REST API and 
 
 Data model: a **project** is a board column; a **card** is a status update inside it. Two tables (`projects`, `cards` with `ON DELETE CASCADE`), created inline at startup via `CREATE TABLE IF NOT EXISTS` — **there are no migrations**, so changing a column means editing the schema and recreating the DB file.
 
+An AI-agent skill for this REST API ships in `.claude/skills/proj-kanban-api/` (`SKILL.md` operating guide + full per-endpoint contract in `references/api.md`); keep it in sync with `src/index.js` when endpoints change.
+
 ### Things that will trip you up
 
 - **`BASE_PATH` is load-bearing on both ends.** The server mounts the API at `/${BASE_PATH}/api` and serves the SPA at `/${BASE_PATH}`. The frontend derives its API base from `window.location.pathname` (`const BASE = ...; const API = BASE + '/api'`), so the app **only works when served under that path** — visiting `/` returns nothing. Keep server `BASE_PATH` and the URL you open in sync.
