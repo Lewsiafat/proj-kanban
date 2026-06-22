@@ -1,0 +1,82 @@
+{
+  "skill_name": "proj-kanban-api",
+  "evals": [
+    {
+      "id": 0,
+      "name": "create-column-and-cards",
+      "prompt": "On my proj-kanban board, create a new column called 'Q3 Launch' with a teal color (#14b8a6). Then add two status cards to it: one titled 'Design review' with status pending, and one titled 'API contract' (leave it on the default status).",
+      "expected_output": "Agent calls POST /projects with name 'Q3 Launch' and color #14b8a6, then POST /projects/:id/cards twice (resolving the new project id from the create response or GET /projects). 'Design review' has status=pending; 'API contract' uses default status (active). Final board state contains the column with both cards.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "update-card-status-and-memo",
+      "prompt": "The card titled 'Design review' on my kanban board is finished. Mark it as done and set its memo to 'approved by team'.",
+      "expected_output": "Agent first GETs /projects to find the card id by title, then PUT /cards/:id with status=done and memo='approved by team' (partial update, not clobbering title). Other fields unchanged.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "read-board-find-blocked",
+      "prompt": "Give me a summary of my kanban board: list each column and tell me which columns currently have any blocked cards.",
+      "expected_output": "Agent makes a single GET /projects call and parses the nested cards arrays, reporting per-column which have at least one card with status=blocked. No mutations.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "move-card-create-target",
+      "prompt": "Move the 'API contract' card into a column called 'Backlog'. If there's no 'Backlog' column yet, create it first.",
+      "expected_output": "Agent GETs /projects to resolve ids, creates 'Backlog' via POST /projects if missing, then PUT /cards/:id with project_id set to the Backlog project id to move the card. Card keeps its title/status.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "delete-column-cascade",
+      "prompt": "Delete the entire 'Q3 Launch' column from my kanban board, including all of its cards.",
+      "expected_output": "Agent GETs /projects to resolve the 'Q3 Launch' id, then DELETE /projects/:id. Recognizes that the API cascade-deletes the column's cards automatically (no need to delete cards individually) and that this is irreversible.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "base-url-path",
+      "prompt": "I need to call this kanban's REST API from a separate script. The server listens on port 10023 with default settings. Give me the exact full URL and HTTP method to (a) list all projects and (b) create a new project.",
+      "expected_output": "Uses the full base path http://localhost:10023/proj-kanban/api/projects (GET to list, POST to create), not /api/projects or /projects.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "no-reorder-endpoint",
+      "prompt": "Reorder the board columns so that 'Backend' becomes the first (leftmost) column.",
+      "expected_output": "Explains the API has no reorder capability: position is insert-only and never updatable; visual order lives in browser localStorage. Does not invent an endpoint or claim success.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "created-status-code-200",
+      "prompt": "I'm writing an automated test that creates a project via the API and asserts on the HTTP response. What status code does a successful POST /projects return, and what is in the response body?",
+      "expected_output": "States success is HTTP 200 (not 201) and the body is the full created project object.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "put-empty-string-footgun",
+      "prompt": "Change ONLY the color of the 'Backend' column to #ef4444. Be careful not to accidentally change anything else about it.",
+      "expected_output": "PUT /projects/:id with only {color}; omits name (does not send name:'' which would wipe it); aware that '' overwrites on PUT.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "no-per-item-get",
+      "prompt": "Fetch the details (title, status, memo) of just the card with id 10.",
+      "expected_output": "No per-item GET exists; uses GET /projects and filters the nested cards for id 10.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "move-no-validation-orphan",
+      "prompt": "Move the card with id 11 into the column whose id is 99.",
+      "expected_output": "Knows PUT /cards/:id with project_id moves a card but is NOT validated; moving to a non-existent id 99 returns 200 yet orphans the card. Verifies id 99 exists first; flags that it doesn't.",
+      "files": []
+    }
+  ]
+}
