@@ -3,3 +3,5 @@ node_modules/
 data/
 *.db
 *.log
+# personal MCP servers (playwright, sqlite) — not shared with the repo
+.mcp.json
