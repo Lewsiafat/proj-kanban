@@ -346,6 +346,7 @@
   .filter-chip.active { box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 30%, transparent); }
   .filter-chip.chip-all.active { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
   .filter-chip .chip-count { font-variant-numeric: tabular-nums; opacity: .8; }
+  .filter-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .footer-ver { margin-left: auto; font-size: 11px; color: var(--text2); }
 </style>
 </head>
@@ -509,6 +510,36 @@ function updateViewSwitch() {
   })
 }
 
+// ── Project filter (status view, localStorage) ──────────────
+const PROJECT_FILTER_KEY = 'kanban-project-filter'
+let activeProjects = new Set(loadProjectFilter())
+
+function loadProjectFilter() {
+  try { return JSON.parse(localStorage.getItem(PROJECT_FILTER_KEY) || '[]') } catch { return [] }
+}
+
+function saveProjectFilter() {
+  localStorage.setItem(PROJECT_FILTER_KEY, JSON.stringify([...activeProjects]))
+}
+
+function matchesProjectFilter(c) {
+  return activeProjects.size === 0 || activeProjects.has(c.project_id)
+}
+
+function toggleProject(id) {
+  if (activeProjects.has(id)) activeProjects.delete(id)
+  else activeProjects.add(id)
+  saveProjectFilter()
+  render()
+}
+
+function clearProjectFilter() {
+  if (activeProjects.size === 0) return
+  activeProjects.clear()
+  saveProjectFilter()
+  render()
+}
+
 // ── Load ────────────────────────────────────────────────────
 async function load() {
   const raw = await api('GET', '/projects')
@@ -571,6 +602,7 @@ function renderStatusView(board) {
   const byStatus = {}
   STATUSES.forEach(s => { byStatus[s.key] = [] })
   state.projects.forEach(p => p.cards.forEach(c => {
+    if (!matchesProjectFilter(c)) return
     if (byStatus[c.status]) byStatus[c.status].push({ card: c, project: p })
   }))
 
@@ -612,6 +644,11 @@ function flipColHeights(board, prev) {
 }
 
 function renderStatusBar() {
+  if (currentView === 'status') renderProjectChips()
+  else renderStatusChips()
+}
+
+function renderStatusChips() {
   const counts = {}
   let total = 0
   STATUSES.forEach(s => { counts[s.key] = 0 })
@@ -628,6 +665,26 @@ function renderStatusBar() {
       ${s.emoji} ${s.label} <span class="chip-count">${counts[s.key]}</span>
     </button>`).join('')
   document.getElementById('statusBar').innerHTML = allChip + statusChips
+}
+
+function renderProjectChips() {
+  let total = 0
+  state.projects.forEach(p => { total += p.cards.length })
+  const allChip = `
+    <button class="filter-chip chip-all ${activeProjects.size === 0 ? 'active' : ''}"
+            onclick="clearProjectFilter()">全部 <span class="chip-count">${total}</span></button>`
+  const projChips = state.projects.map(p => {
+    const on = activeProjects.has(p.id)
+    const style = on
+      ? `style="color:${esc(p.color)}; background:color-mix(in oklab, ${esc(p.color)} 14%, transparent)"`
+      : ''
+    return `
+    <button class="filter-chip chip-proj ${on ? 'active' : ''}" ${style}
+            onclick="toggleProject(${p.id})">
+      <span class="chip-dot" style="background:${esc(p.color)}"></span>${esc(p.name)} <span class="chip-count">${p.cards.length}</span>
+    </button>`
+  }).join('')
+  document.getElementById('statusBar').innerHTML = allChip + projChips
 }
 
 // statuses actually shown for a filter set (empty set = all shown)
