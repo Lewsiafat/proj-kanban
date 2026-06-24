@@ -202,6 +202,15 @@
   .status-pending  { background: rgba(217,154, 60,.18); color: #8a5e10; }
   .status-archived { background: rgba(168,156,138,.18); color: #6b5f4f; }
 
+  /* Status view */
+  .col-title-static {
+    font-family: var(--font-head); font-size: 14px; font-weight: 500;
+    letter-spacing: -.01em; flex: 1; color: var(--text);
+  }
+  .card-project { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+  .card-project-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card-project-name { font-size: 11px; font-weight: 600; color: var(--text2); }
+
   /* Add card btn */
   .add-card-btn {
     display: flex; align-items: center; gap: 6px;
@@ -557,9 +566,32 @@ function renderProjectView(board) {
   initDragDrop()
 }
 
-// Status view — columns are statuses (Task 3 實作)
+// Status view — columns are statuses; cards grouped across all projects
 function renderStatusView(board) {
-  // placeholder — 後續任務填入
+  const byStatus = {}
+  STATUSES.forEach(s => { byStatus[s.key] = [] })
+  state.projects.forEach(p => p.cards.forEach(c => {
+    if (byStatus[c.status]) byStatus[c.status].push({ card: c, project: p })
+  }))
+
+  STATUSES.forEach(s => {
+    const items = byStatus[s.key]
+    const col = document.createElement('div')
+    col.className = 'col'
+    col.dataset.status = s.key
+    col.dataset.colKey = 's-' + s.key
+    col.innerHTML = `
+      <div class="col-header">
+        <div class="col-title-static">${s.emoji} ${s.label}</div>
+        <span class="col-count status-${s.key}">${items.length}</span>
+      </div>
+      <div class="col-body" id="status-col-${s.key}">
+        ${items.map(it => statusCardHTML(it.card, it.project)).join('')}
+      </div>
+      <button class="add-card-btn" onclick="openCardModal(null, null, '${s.key}')">＋ 新增更新</button>
+    `
+    board.appendChild(col)
+  })
 }
 
 // Animate each column's outer frame between its old and new height when its
@@ -712,6 +744,24 @@ function cardHTML(c) {
       <div class="card-title">${esc(c.title)}</div>
       <div class="card-meta">
         <span class="card-status status-${c.status}">${labels[c.status] || c.status}</span>
+        <span class="card-time">${date}</span>
+      </div>
+      ${memo}
+    </div>`
+}
+
+function statusCardHTML(c, project) {
+  const date = c.updated_at.slice(0,10)
+  const memo = c.memo ? `<div class="card-memo">${esc(c.memo)}</div>` : ''
+  return `
+    <div class="card" draggable="true" data-status="${c.status}" data-card-id="${c.id}"
+         onclick="openCardModal(${c.project_id}, ${c.id})">
+      <div class="card-project">
+        <span class="card-project-dot" style="background:${esc(project.color)}"></span>
+        <span class="card-project-name">${esc(project.name)}</span>
+      </div>
+      <div class="card-title">${esc(c.title)}</div>
+      <div class="card-meta">
         <span class="card-time">${date}</span>
       </div>
       ${memo}
