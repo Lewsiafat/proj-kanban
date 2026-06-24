@@ -969,9 +969,17 @@ async function saveProject() {
 
 async function deleteCurrentProject() {
   if (!confirm('確定刪除這個專案和所有卡片？')) return
-  await api('DELETE', `/projects/${editing.id}`)
+  const id = editing.id
+  await api('DELETE', `/projects/${id}`)
   closeModal('projectModal')
-  load()
+  // Fade the doomed column out before reloading; the project modal is only
+  // reachable in the project view, so this .col is always present.
+  const col = document.querySelector(`.col[data-proj-id="${id}"]`)
+  if (window.gsap && col) {
+    gsap.to(col, { opacity: 0, scale: .96, duration: .2, ease: 'power2.out', onComplete: load })
+  } else {
+    load()
+  }
 }
 
 // ── Card Modal ──────────────────────────────────────────────
