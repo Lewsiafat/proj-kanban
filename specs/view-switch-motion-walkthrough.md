@@ -25,11 +25,12 @@ gsap.to(oldCols, {
 })
 ```
 
-`gsap.killTweensOf(oldCols)` 確保快速連點不會疊加 tween。GSAP 不可用時直接呼叫 `rerender()`。
+`gsap.killTweensOf(oldCols)` 確保快速連點不會疊加 tween。淡出的閘門是 `if (window.gsap && oldCols.length)`——GSAP 不可用**或目前看板無欄位時**直接呼叫 `rerender()`，跳過淡出。
 
 `render(opts)` 完成渲染後，根據 `opts.viewSwitch` 決定後半段動畫：
 
-- **有 `viewSwitch`：** 對新欄位做 **淡入**（`opacity 0 → 1, y 8 → 0, duration 0.28s, stagger 0.03s`），並完全跳過 `flipColHeights()`。原因：切換視圖會替換全部欄位，新欄的 `data-col-key`（專案欄 `'p<id>'`、狀態欄 `'s-<key>'`）與舊欄完全沒有交集，FLIP 動畫無從對位，強制進入 stagger 淡入。
+- **`viewSwitch` + GSAP：** 對新欄位做 **淡入**（`opacity 0 → 1, y 8 → 0, duration 0.28s, stagger 0.03s`），並完全跳過 `flipColHeights()`。原因：切換視圖會替換全部欄位，新欄的 `data-col-key`（專案欄 `'p<id>'`、狀態欄 `'s-<key>'`）與舊欄完全沒有交集，FLIP 動畫無從對位，強制進入 stagger 淡入。
+- **`viewSwitch` 但無 GSAP：** 兩個分支（`if (opts.viewSwitch && window.gsap)` / `else if (!opts.viewSwitch)`）皆不成立，**既不播淡入、也不呼叫 `flipColHeights()`**，新欄直接即時出現——與全站「GSAP 缺席即降級為即時」的行為一致。
 - **無 `viewSwitch`（一般重繪）：** 呼叫 `flipColHeights()` 做高度動畫與新欄進場。
 
 ### 2. 新增欄位進場：`flipColHeights(board, prev)`（~L658）
@@ -64,7 +65,3 @@ if (window.gsap && col) {
 - **GSAP 缺席時的降級：** 三個觸點都包了 `if (window.gsap && ...)` / `else`，GSAP CDN 失敗或被封鎖時行為與改版前完全一致。
 - **不處理 `prefers-reduced-motion`：** 與既有程式碼（如 `flipColHeights` 原本的高度補間）一致，維持風格統一，可日後統一加入。
 - **欄位增刪限專案視圖：** 狀態視圖的 5 個狀態欄固定，不需要進出動畫。
-
-## 開發流程
-
-以 superpowers Subagent-Driven Development 執行——Task 1（視圖切換淡出淡入）、Task 2（新欄進場）、Task 3（刪欄退場）各由實作 subagent 完成後提交；Task 4 補充本文件。因本專案無 test runner，驗證採 `node --check` 語法 gate + Playwright 瀏覽器手動驗證。
