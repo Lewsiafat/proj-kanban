@@ -657,9 +657,22 @@ function renderStatusView(board) {
 // card count changes (add / delete / filter). Target height is pre-measured.
 function flipColHeights(board, prev) {
   if (!window.gsap) return
+  const hadColumns = Object.keys(prev).length > 0   // false only on the very first render
   board.querySelectorAll('.col').forEach(col => {
     const from = prev[col.dataset.colKey]
-    if (from == null) return             // newly added column — nothing to animate from
+    if (from == null) {
+      // colKey absent from prev = a genuinely new column. Animate its entrance,
+      // but skip the first load (prev empty) where every column would qualify.
+      // (The view-switch path takes the opts.viewSwitch branch and never calls
+      // flipColHeights, so it can't double-fire here.)
+      if (hadColumns) {
+        gsap.from(col, {
+          opacity: 0, y: 6, scale: .96, transformOrigin: 'top center',
+          duration: .28, ease: 'power2.out', clearProps: 'all',
+        })
+      }
+      return
+    }
     const to = col.offsetHeight
     if (Math.abs(from - to) < 2) return  // height unchanged
     col.classList.add('h-anim')
