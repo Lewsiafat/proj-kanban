@@ -16,7 +16,7 @@ There is **no build step, no test suite, and no linter** — the frontend is ser
 
 ## Architecture
 
-A single Express server (`src/index.js`, ~140 lines) serves both a REST API and a single static HTML page (`public/index.html`, ~650 lines, vanilla JS — no framework, no bundler). SQLite via `better-sqlite3`, file at `${DATA_DIR}/kanban.db`.
+A single Express server (`src/index.js`, ~140 lines) serves both a REST API and a single static HTML page (`public/index.html`, ~780 lines, vanilla JS — no framework, no bundler). SQLite via `better-sqlite3`, file at `${DATA_DIR}/kanban.db`. The frontend has **two board views** toggled in the header (persisted to `localStorage`): the **project view** (columns = projects) and the **status view** (columns = the 5 statuses, cards grouped across all projects).
 
 Data model: a **project** is a board column; a **card** is a status update inside it. Two tables (`projects`, `cards` with `ON DELETE CASCADE`), created inline at startup via `CREATE TABLE IF NOT EXISTS` — **there are no migrations**, so changing a column means editing the schema and recreating the DB file.
 
@@ -35,6 +35,8 @@ Other Claude Code helpers live in `.claude/` (committed with the repo):
 - **Column order is client-only.** The `projects.position` column exists and new projects get `MAX(position)+1`, but drag-and-drop reordering is **never persisted to the server** — it's saved to `localStorage` under `kanban-col-order` and re-applied client-side in `applyOrder()`. So column order is per-browser, and the DB `position` only reflects insertion order. Don't assume the server knows the visual order.
 
 - **No partial updates.** Every mutation calls `load()`, which re-fetches all projects+cards (`GET /api/projects` returns projects with their cards nested) and re-renders the whole board via `innerHTML`. There's no client-side diffing or optimistic update.
+
+- **Two views, two of everything.** `render()` dispatches on `currentView` (persisted under `kanban-view`) to `renderProjectView()` or `renderStatusView()`. The two views run **parallel, isolated** subsystems: separate filters (project view = status chips `kanban-status-filter`; status view = project chips `kanban-project-filter` — orthogonal, never overwrite each other) and separate drag systems (project view = column reorder via `initDragDrop`/`dragSrcIdx`; status view = card drag to change status via `initStatusDragDrop`/`dragCardId` → `PUT /cards/:id {status}`). `flipColHeights()` keys off `data-col-key` (`'p'+id` for project columns, `'s-'+key` for status columns). The status view groups cards from `STATUSES` (the same constant that drives the status filter chips), so a **new status also needs adding to `STATUSES`** on top of the three places below.
 
 - **Status is an open string.** Valid values are `active | pending | done | blocked | archived`, enforced only by the `<select>` and the label/CSS maps in the frontend — the DB and API accept any string. New statuses need updates in three places: the `<select>` options, the `labels` map in `cardHTML()`, and the `.status-*` CSS classes.
 

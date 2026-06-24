@@ -6,8 +6,11 @@ A lightweight Kanban-style project status tracker. Each column is a project, eac
 
 ## 功能
 
-- 多專案直欄看板，快速掌握各專案狀態
+- 雙視圖切換（header 切換、選擇持久化）：
+  - **專案視圖**：欄為專案，footer 以狀態篩選
+  - **狀態視圖**：欄為狀態，卡片跨專案依狀態分組（顯示所屬專案），footer 以專案篩選；拖曳卡片到別的狀態欄即改狀態
 - 卡片支援標題 + memo + 狀態標籤（進行中 / 待處理 / 完成 / 卡住了 / 封存）
+- 卡片 modal 可選專案，支援跨專案新增與移動卡片
 - 全 CRUD：新增、編輯、刪除專案與卡片
 - REST API，可程式化操作
 
