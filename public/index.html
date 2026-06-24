@@ -456,6 +456,18 @@ function matchesFilter(c) {
   return activeStatuses.size === 0 || activeStatuses.has(c.status)
 }
 
+// ── View (project | status) ─────────────────────────────────
+const VIEW_KEY = 'kanban-view'
+let currentView = loadView()
+
+function loadView() {
+  return localStorage.getItem(VIEW_KEY) === 'status' ? 'status' : 'project'
+}
+
+function saveView() {
+  localStorage.setItem(VIEW_KEY, currentView)
+}
+
 // ── Load ────────────────────────────────────────────────────
 async function load() {
   const raw = await api('GET', '/projects')
@@ -468,13 +480,23 @@ function render() {
   const board = document.getElementById('board')
   // capture current column heights so we can animate the frame when card count changes
   const prevColHeights = {}
-  board.querySelectorAll('.col').forEach(col => { prevColHeights[col.dataset.projId] = col.offsetHeight })
+  board.querySelectorAll('.col').forEach(col => { prevColHeights[col.dataset.colKey] = col.offsetHeight })
   board.innerHTML = ''
 
+  if (currentView === 'status') renderStatusView(board)
+  else renderProjectView(board)
+
+  renderStatusBar()
+  flipColHeights(board, prevColHeights)
+}
+
+// Project view — columns are projects (原本的看板,行為不變)
+function renderProjectView(board) {
   state.projects.forEach(p => {
     const col = document.createElement('div')
     col.className = 'col'
     col.dataset.projId = p.id
+    col.dataset.colKey = 'p' + p.id
     col.setAttribute('draggable', 'true')
     col.innerHTML = `
       <div class="col-header">
@@ -501,8 +523,11 @@ function render() {
   board.appendChild(addCol)
 
   initDragDrop()
-  renderStatusBar()
-  flipColHeights(board, prevColHeights)
+}
+
+// Status view — columns are statuses (Task 3 實作)
+function renderStatusView(board) {
+  // placeholder — 後續任務填入
 }
 
 // Animate each column's outer frame between its old and new height when its
@@ -510,7 +535,7 @@ function render() {
 function flipColHeights(board, prev) {
   if (!window.gsap) return
   board.querySelectorAll('.col').forEach(col => {
-    const from = prev[col.dataset.projId]
+    const from = prev[col.dataset.colKey]
     if (from == null) return             // newly added column — nothing to animate from
     const to = col.offsetHeight
     if (Math.abs(from - to) < 2) return  // height unchanged
