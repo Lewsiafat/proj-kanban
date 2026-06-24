@@ -397,6 +397,10 @@
   <div class="modal">
     <h2 id="cardModalTitle">新增狀態更新</h2>
     <div class="form-group">
+      <label>專案</label>
+      <select id="cardProject"></select>
+    </div>
+    <div class="form-group">
       <label>標題</label>
       <input id="cardTitle" type="text" placeholder="例：完成登入模組">
     </div>
@@ -937,15 +941,22 @@ async function deleteCurrentProject() {
 }
 
 // ── Card Modal ──────────────────────────────────────────────
-function openCardModal(projectId, cardId) {
-  editing = { type: 'card', id: cardId || null, projectId }
+function openCardModal(projectId, cardId, presetStatus) {
   const proj = state.projects.find(p => p.id === projectId)
   const card = cardId ? proj?.cards.find(c => c.id === cardId) : null
+  editing = { type: 'card', id: cardId || null, projectId }
 
-  document.getElementById('cardModalTitle').textContent = card ? '編輯狀態更新' : `新增更新 — ${proj?.name}`
+  // project dropdown — list every project
+  const sel = document.getElementById('cardProject')
+  sel.innerHTML = state.projects.map(p =>
+    `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+  const preProjId = card ? card.project_id : (projectId ?? state.projects[0]?.id)
+  if (preProjId != null) sel.value = String(preProjId)
+
+  document.getElementById('cardModalTitle').textContent = card ? '編輯狀態更新' : '新增狀態更新'
   document.getElementById('cardTitle').value = card?.title || ''
   document.getElementById('cardMemo').value = card?.memo || ''
-  document.getElementById('cardStatus').value = card?.status || 'active'
+  document.getElementById('cardStatus').value = card?.status || presetStatus || 'active'
   document.getElementById('deleteCardBtn').classList.toggle('hidden', !card)
 
   document.getElementById('cardModal').classList.remove('hidden')
@@ -956,12 +967,14 @@ async function saveCard() {
   const title = document.getElementById('cardTitle').value.trim()
   const memo  = document.getElementById('cardMemo').value.trim()
   const status = document.getElementById('cardStatus').value
+  const projectId = parseInt(document.getElementById('cardProject').value)
   if (!title) return toast('請輸入標題')
+  if (!projectId) return toast('請選擇專案')
   try {
     if (editing.id) {
-      await api('PUT', `/cards/${editing.id}`, { title, memo, status })
+      await api('PUT', `/cards/${editing.id}`, { title, memo, status, project_id: projectId })
     } else {
-      await api('POST', `/projects/${editing.projectId}/cards`, { title, memo, status })
+      await api('POST', `/projects/${projectId}/cards`, { title, memo, status })
     }
     closeModal('cardModal')
     load()
