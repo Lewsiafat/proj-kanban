@@ -118,6 +118,7 @@
     transition: border-color .15s, box-shadow .15s, background .15s;
   }
   .col.dragging { opacity: 0.35; }
+  .card.dragging { opacity: 0.4; }
   .col.drag-over {
     border-color: var(--accent);
     background: color-mix(in oklab, var(--accent) 6%, var(--surface));
@@ -624,6 +625,7 @@ function renderStatusView(board) {
     `
     board.appendChild(col)
   })
+  initStatusDragDrop()
 }
 
 // Animate each column's outer frame between its old and new height when its
@@ -790,6 +792,63 @@ function initDragDrop() {
       render()
     })
   })
+}
+
+// Status-view card drag — drop a card on a status column to change its status
+let dragCardId = null
+
+function initStatusDragDrop() {
+  const board = document.getElementById('board')
+
+  board.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      e.stopPropagation()
+      dragCardId = parseInt(card.dataset.cardId)
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', String(dragCardId))
+      requestAnimationFrame(() => card.classList.add('dragging'))
+    })
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging')
+      board.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'))
+      dragCardId = null
+    })
+  })
+
+  board.querySelectorAll('.col').forEach(col => {
+    col.addEventListener('dragover', e => {
+      if (dragCardId === null) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      board.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'))
+      col.classList.add('drag-over')
+    })
+    col.addEventListener('dragleave', e => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+    })
+    col.addEventListener('drop', async e => {
+      e.preventDefault()
+      col.classList.remove('drag-over')
+      if (dragCardId === null) return
+      const id = dragCardId
+      const newStatus = col.dataset.status
+      const card = findCard(id)
+      dragCardId = null
+      if (!card || card.status === newStatus) return
+      try {
+        await api('PUT', `/cards/${id}`, { status: newStatus })
+        load()
+      } catch (err) { toast(err.message) }
+    })
+  })
+}
+
+function findCard(id) {
+  for (const p of state.projects) {
+    const c = p.cards.find(c => c.id === id)
+    if (c) return c
+  }
+  return null
 }
 
 function cardHTML(c) {
