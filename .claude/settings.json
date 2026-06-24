@@ -16,5 +16,10 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "mcp__playwright__*"
+    ]
   }
 }

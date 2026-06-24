@@ -80,6 +80,20 @@
   .btn-danger { color: var(--danger); border-color: transparent; background: transparent; box-shadow: none; }
   .btn-danger:hover { background: color-mix(in oklab, var(--danger) 12%, transparent); box-shadow: none; transform: none; }
   .btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+  .view-switch {
+    display: inline-flex; gap: 2px; margin-left: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border-st);
+    border-radius: 10px; padding: 2px;
+  }
+  .view-btn {
+    border: none; background: none; cursor: pointer;
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: var(--text2); padding: 5px 14px; border-radius: 8px;
+    transition: all 140ms var(--ease);
+  }
+  .view-btn:hover { color: var(--text); }
+  .view-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
 
   /* Board */
   .board {
@@ -104,6 +118,7 @@
     transition: border-color .15s, box-shadow .15s, background .15s;
   }
   .col.dragging { opacity: 0.35; }
+  .card.dragging { opacity: 0.4; }
   .col.drag-over {
     border-color: var(--accent);
     background: color-mix(in oklab, var(--accent) 6%, var(--surface));
@@ -187,6 +202,15 @@
   .status-blocked  { background: rgba(217,112, 94,.18); color: #a84331; }
   .status-pending  { background: rgba(217,154, 60,.18); color: #8a5e10; }
   .status-archived { background: rgba(168,156,138,.18); color: #6b5f4f; }
+
+  /* Status view */
+  .col-title-static {
+    font-family: var(--font-head); font-size: 14px; font-weight: 500;
+    letter-spacing: -.01em; flex: 1; color: var(--text);
+  }
+  .card-project { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
+  .card-project-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .card-project-name { font-size: 11px; font-weight: 600; color: var(--text2); }
 
   /* Add card btn */
   .add-card-btn {
@@ -323,6 +347,7 @@
   .filter-chip.active { box-shadow: 0 0 0 2px color-mix(in oklab, currentColor 30%, transparent); }
   .filter-chip.chip-all.active { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
   .filter-chip .chip-count { font-variant-numeric: tabular-nums; opacity: .8; }
+  .filter-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .footer-ver { margin-left: auto; font-size: 11px; color: var(--text2); }
 </style>
 </head>
@@ -330,6 +355,10 @@
 
 <header>
   <h1>📋 Project <span>Kanban</span></h1>
+  <div class="view-switch" id="viewSwitch">
+    <button class="view-btn" data-view="project" onclick="switchView('project')">專案視圖</button>
+    <button class="view-btn" data-view="status" onclick="switchView('status')">狀態視圖</button>
+  </div>
   <div class="header-actions">
     <button class="btn btn-primary" onclick="openProjectModal()">＋ 新增專案</button>
   </div>
@@ -367,6 +396,10 @@
 <div class="modal-overlay hidden" id="cardModal">
   <div class="modal">
     <h2 id="cardModalTitle">新增狀態更新</h2>
+    <div class="form-group">
+      <label>專案</label>
+      <select id="cardProject"></select>
+    </div>
     <div class="form-group">
       <label>標題</label>
       <input id="cardTitle" type="text" placeholder="例：完成登入模組">
@@ -456,6 +489,62 @@ function matchesFilter(c) {
   return activeStatuses.size === 0 || activeStatuses.has(c.status)
 }
 
+// ── View (project | status) ─────────────────────────────────
+const VIEW_KEY = 'kanban-view'
+let currentView = loadView()
+
+function loadView() {
+  return localStorage.getItem(VIEW_KEY) === 'status' ? 'status' : 'project'
+}
+
+function saveView() {
+  localStorage.setItem(VIEW_KEY, currentView)
+}
+
+function switchView(view) {
+  if (view === currentView) return
+  currentView = view
+  saveView()
+  updateViewSwitch()
+  render()
+}
+
+function updateViewSwitch() {
+  document.querySelectorAll('.view-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === currentView)
+  })
+}
+
+// ── Project filter (status view, localStorage) ──────────────
+const PROJECT_FILTER_KEY = 'kanban-project-filter'
+let activeProjects = new Set(loadProjectFilter())
+
+function loadProjectFilter() {
+  try { return JSON.parse(localStorage.getItem(PROJECT_FILTER_KEY) || '[]') } catch { return [] }
+}
+
+function saveProjectFilter() {
+  localStorage.setItem(PROJECT_FILTER_KEY, JSON.stringify([...activeProjects]))
+}
+
+function matchesProjectFilter(c) {
+  return activeProjects.size === 0 || activeProjects.has(c.project_id)
+}
+
+function toggleProject(id) {
+  if (activeProjects.has(id)) activeProjects.delete(id)
+  else activeProjects.add(id)
+  saveProjectFilter()
+  render()
+}
+
+function clearProjectFilter() {
+  if (activeProjects.size === 0) return
+  activeProjects.clear()
+  saveProjectFilter()
+  render()
+}
+
 // ── Load ────────────────────────────────────────────────────
 async function load() {
   const raw = await api('GET', '/projects')
@@ -468,13 +557,23 @@ function render() {
   const board = document.getElementById('board')
   // capture current column heights so we can animate the frame when card count changes
   const prevColHeights = {}
-  board.querySelectorAll('.col').forEach(col => { prevColHeights[col.dataset.projId] = col.offsetHeight })
+  board.querySelectorAll('.col').forEach(col => { prevColHeights[col.dataset.colKey] = col.offsetHeight })
   board.innerHTML = ''
 
+  if (currentView === 'status') renderStatusView(board)
+  else renderProjectView(board)
+
+  renderStatusBar()
+  flipColHeights(board, prevColHeights)
+}
+
+// Project view — columns are projects (原本的看板,行為不變)
+function renderProjectView(board) {
   state.projects.forEach(p => {
     const col = document.createElement('div')
     col.className = 'col'
     col.dataset.projId = p.id
+    col.dataset.colKey = 'p' + p.id
     col.setAttribute('draggable', 'true')
     col.innerHTML = `
       <div class="col-header">
@@ -501,8 +600,36 @@ function render() {
   board.appendChild(addCol)
 
   initDragDrop()
-  renderStatusBar()
-  flipColHeights(board, prevColHeights)
+}
+
+// Status view — columns are statuses; cards grouped across all projects
+function renderStatusView(board) {
+  const byStatus = {}
+  STATUSES.forEach(s => { byStatus[s.key] = [] })
+  state.projects.forEach(p => p.cards.forEach(c => {
+    if (!matchesProjectFilter(c)) return
+    if (byStatus[c.status]) byStatus[c.status].push({ card: c, project: p })
+  }))
+
+  STATUSES.forEach(s => {
+    const items = byStatus[s.key]
+    const col = document.createElement('div')
+    col.className = 'col'
+    col.dataset.status = s.key
+    col.dataset.colKey = 's-' + s.key
+    col.innerHTML = `
+      <div class="col-header">
+        <div class="col-title-static">${s.emoji} ${s.label}</div>
+        <span class="col-count status-${s.key}">${items.length}</span>
+      </div>
+      <div class="col-body" id="status-col-${s.key}">
+        ${items.map(it => statusCardHTML(it.card, it.project)).join('')}
+      </div>
+      <button class="add-card-btn" onclick="openCardModal(null, null, '${s.key}')">＋ 新增更新</button>
+    `
+    board.appendChild(col)
+  })
+  initStatusDragDrop()
 }
 
 // Animate each column's outer frame between its old and new height when its
@@ -510,7 +637,7 @@ function render() {
 function flipColHeights(board, prev) {
   if (!window.gsap) return
   board.querySelectorAll('.col').forEach(col => {
-    const from = prev[col.dataset.projId]
+    const from = prev[col.dataset.colKey]
     if (from == null) return             // newly added column — nothing to animate from
     const to = col.offsetHeight
     if (Math.abs(from - to) < 2) return  // height unchanged
@@ -523,6 +650,11 @@ function flipColHeights(board, prev) {
 }
 
 function renderStatusBar() {
+  if (currentView === 'status') renderProjectChips()
+  else renderStatusChips()
+}
+
+function renderStatusChips() {
   const counts = {}
   let total = 0
   STATUSES.forEach(s => { counts[s.key] = 0 })
@@ -539,6 +671,26 @@ function renderStatusBar() {
       ${s.emoji} ${s.label} <span class="chip-count">${counts[s.key]}</span>
     </button>`).join('')
   document.getElementById('statusBar').innerHTML = allChip + statusChips
+}
+
+function renderProjectChips() {
+  let total = 0
+  state.projects.forEach(p => { total += p.cards.length })
+  const allChip = `
+    <button class="filter-chip chip-all ${activeProjects.size === 0 ? 'active' : ''}"
+            onclick="clearProjectFilter()">全部 <span class="chip-count">${total}</span></button>`
+  const projChips = state.projects.map(p => {
+    const on = activeProjects.has(p.id)
+    const style = on
+      ? `style="color:${esc(p.color)}; background:color-mix(in oklab, ${esc(p.color)} 14%, transparent)"`
+      : ''
+    return `
+    <button class="filter-chip chip-proj ${on ? 'active' : ''}" ${style}
+            onclick="toggleProject(${p.id})">
+      <span class="chip-dot" style="background:${esc(p.color)}"></span>${esc(p.name)} <span class="chip-count">${p.cards.length}</span>
+    </button>`
+  }).join('')
+  document.getElementById('statusBar').innerHTML = allChip + projChips
 }
 
 // statuses actually shown for a filter set (empty set = all shown)
@@ -646,6 +798,63 @@ function initDragDrop() {
   })
 }
 
+// Status-view card drag — drop a card on a status column to change its status
+let dragCardId = null
+
+function initStatusDragDrop() {
+  const board = document.getElementById('board')
+
+  board.querySelectorAll('.card').forEach(card => {
+    card.addEventListener('dragstart', e => {
+      e.stopPropagation()
+      dragCardId = parseInt(card.dataset.cardId)
+      e.dataTransfer.effectAllowed = 'move'
+      e.dataTransfer.setData('text/plain', String(dragCardId))
+      requestAnimationFrame(() => card.classList.add('dragging'))
+    })
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging')
+      board.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'))
+      dragCardId = null
+    })
+  })
+
+  board.querySelectorAll('.col').forEach(col => {
+    col.addEventListener('dragover', e => {
+      if (dragCardId === null) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'move'
+      board.querySelectorAll('.col').forEach(c => c.classList.remove('drag-over'))
+      col.classList.add('drag-over')
+    })
+    col.addEventListener('dragleave', e => {
+      if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over')
+    })
+    col.addEventListener('drop', async e => {
+      e.preventDefault()
+      col.classList.remove('drag-over')
+      if (dragCardId === null) return
+      const id = dragCardId
+      const newStatus = col.dataset.status
+      const card = findCard(id)
+      dragCardId = null
+      if (!card || card.status === newStatus) return
+      try {
+        await api('PUT', `/cards/${id}`, { status: newStatus })
+        load()
+      } catch (err) { toast(err.message) }
+    })
+  })
+}
+
+function findCard(id) {
+  for (const p of state.projects) {
+    const c = p.cards.find(c => c.id === id)
+    if (c) return c
+  }
+  return null
+}
+
 function cardHTML(c) {
   const labels = { active:'進行中', pending:'待處理', done:'完成', blocked:'卡住了', archived:'封存' }
   const date = c.updated_at.slice(0,10)
@@ -655,6 +864,24 @@ function cardHTML(c) {
       <div class="card-title">${esc(c.title)}</div>
       <div class="card-meta">
         <span class="card-status status-${c.status}">${labels[c.status] || c.status}</span>
+        <span class="card-time">${date}</span>
+      </div>
+      ${memo}
+    </div>`
+}
+
+function statusCardHTML(c, project) {
+  const date = c.updated_at.slice(0,10)
+  const memo = c.memo ? `<div class="card-memo">${esc(c.memo)}</div>` : ''
+  return `
+    <div class="card" draggable="true" data-status="${c.status}" data-card-id="${c.id}"
+         onclick="openCardModal(${c.project_id}, ${c.id})">
+      <div class="card-project">
+        <span class="card-project-dot" style="background:${esc(project.color)}"></span>
+        <span class="card-project-name">${esc(project.name)}</span>
+      </div>
+      <div class="card-title">${esc(c.title)}</div>
+      <div class="card-meta">
         <span class="card-time">${date}</span>
       </div>
       ${memo}
@@ -714,15 +941,22 @@ async function deleteCurrentProject() {
 }
 
 // ── Card Modal ──────────────────────────────────────────────
-function openCardModal(projectId, cardId) {
-  editing = { type: 'card', id: cardId || null, projectId }
+function openCardModal(projectId, cardId, presetStatus) {
   const proj = state.projects.find(p => p.id === projectId)
   const card = cardId ? proj?.cards.find(c => c.id === cardId) : null
+  editing = { type: 'card', id: cardId || null, projectId }
 
-  document.getElementById('cardModalTitle').textContent = card ? '編輯狀態更新' : `新增更新 — ${proj?.name}`
+  // project dropdown — list every project
+  const sel = document.getElementById('cardProject')
+  sel.innerHTML = state.projects.map(p =>
+    `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+  const preProjId = card ? card.project_id : (projectId ?? state.projects[0]?.id)
+  if (preProjId != null) sel.value = String(preProjId)
+
+  document.getElementById('cardModalTitle').textContent = card ? '編輯狀態更新' : '新增狀態更新'
   document.getElementById('cardTitle').value = card?.title || ''
   document.getElementById('cardMemo').value = card?.memo || ''
-  document.getElementById('cardStatus').value = card?.status || 'active'
+  document.getElementById('cardStatus').value = card?.status || presetStatus || 'active'
   document.getElementById('deleteCardBtn').classList.toggle('hidden', !card)
 
   document.getElementById('cardModal').classList.remove('hidden')
@@ -733,12 +967,14 @@ async function saveCard() {
   const title = document.getElementById('cardTitle').value.trim()
   const memo  = document.getElementById('cardMemo').value.trim()
   const status = document.getElementById('cardStatus').value
+  const projectId = parseInt(document.getElementById('cardProject').value)
   if (!title) return toast('請輸入標題')
+  if (!projectId) return toast('請選擇專案')
   try {
     if (editing.id) {
-      await api('PUT', `/cards/${editing.id}`, { title, memo, status })
+      await api('PUT', `/cards/${editing.id}`, { title, memo, status, project_id: projectId })
     } else {
-      await api('POST', `/projects/${editing.projectId}/cards`, { title, memo, status })
+      await api('POST', `/projects/${projectId}/cards`, { title, memo, status })
     }
     closeModal('cardModal')
     load()
@@ -777,6 +1013,7 @@ function toast(msg) {
 }
 
 // init
+updateViewSwitch()
 load()
 </script>
 </body>
