@@ -12,6 +12,7 @@ A lightweight Kanban-style project status tracker. Each column is a project, eac
 - 卡片支援標題 + memo + 狀態標籤（進行中 / 待處理 / 完成 / 卡住了 / 封存）
 - 卡片 modal 可選專案，支援跨專案新增與移動卡片
 - 全 CRUD：新增、編輯、刪除專案與卡片
+- 順滑過場動畫：切換視圖、新增/刪除專案欄皆有克制的 GSAP 淡入淡出過場（無 GSAP 時自動回退為即時）
 - REST API，可程式化操作
 
 ## Quick Start

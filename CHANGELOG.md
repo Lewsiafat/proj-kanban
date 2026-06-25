@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-25
+
+### Added
+- **Smooth view-switch transition** — toggling between the project view and status view now fades the current columns out and staggers the incoming columns in (GSAP core, `power2.out`, 0.16–0.28s) instead of a hard cut. See `specs/view-switch-motion-walkthrough.md`.
+- **Project-column add/remove animations** (project view only) — a newly-added column fades and slightly scales in (folded into `flipColHeights()`); a deleted column fades and scales out before the board reloads. The horizontal reflow of the remaining columns is left instant by design.
+
+### Changed
+- All of the above is frontend-only (`public/index.html`: `render()` / `switchView()` / `flipColHeights()` / `deleteCurrentProject()`). Every animation is gated on the already-loaded GSAP 3.12.5 **core** with a fallback to the prior instant behavior — no new dependency, and no behavior change when GSAP is absent. No `prefers-reduced-motion` handling (consistent with the existing code). The REST API, DB schema, and `proj-kanban-api` skill are untouched.
+
 ## [1.2.0] - 2026-06-24
 
 ### Added

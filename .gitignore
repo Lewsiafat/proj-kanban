@@ -3,6 +3,7 @@ node_modules/
 data/
 *.db
 *.log
+temp/
 # personal MCP servers (playwright, sqlite) — not shared with the repo
 .mcp.json
 .playwright-mcp/
