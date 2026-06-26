@@ -7,3 +7,6 @@ temp/
 # personal MCP servers (playwright, sqlite) — not shared with the repo
 .mcp.json
 .playwright-mcp/
+# superpowers plugin skills (third-party, provided by the plugin — not part of this repo)
+.claude/skills/executing-plans/
+.claude/skills/writing-plans/
