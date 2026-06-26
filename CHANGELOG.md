@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **English** · [繁體中文](./CHANGELOG.zh-TW.md)
 
-## [Unreleased]
+## [1.4.0] - 2026-06-26
 
 ### Added
-- **Bilingual UI (i18n)** — the interface now ships in **English** by default with a one-click switch to Traditional Chinese (繁體中文), persisted in `localStorage` under `kanban-lang`. Frontend-only (`public/index.html`) — no REST API or DB schema change. The `README` and `CHANGELOG` now provide an English (default) version alongside a Traditional-Chinese version.
+- **Bilingual UI (i18n)** — the interface now ships in **English** by default with a one-click language switch (top-right, after **New Project**) to Traditional Chinese (繁體中文), persisted in `localStorage` under `kanban-lang`. Built framework-free: an `I18N` dictionary (`en` / `zh-TW`) + `t()` helper, `data-i18n` attributes for static markup, and locale-aware status labels — every dynamic string (cards, modals, toasts, filter chips, sort options) re-renders on switch. Frontend-only (`public/index.html`) — no REST API or DB schema change. The `README` and `CHANGELOG` now provide an English (default) version alongside a Traditional-Chinese version (`README.zh-TW.md`, `CHANGELOG.zh-TW.md`).
 
 ## [1.3.0] - 2026-06-25
 

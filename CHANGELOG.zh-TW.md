@@ -7,10 +7,10 @@
 
 [English](./CHANGELOG.md) · **繁體中文**
 
-## [Unreleased]
+## [1.4.0] - 2026-06-26
 
 ### 新增
-- **雙語介面（i18n）** — 介面現在預設為 **English**，並可一鍵切換為繁體中文（Traditional Chinese），偏好設定持久化於 `localStorage` 的 `kanban-lang`。僅限前端（`public/index.html`）— 不變更 REST API 或 DB schema。`README` 與 `CHANGELOG` 現在同時提供英文版（預設）與繁體中文版。
+- **雙語介面（i18n）** — 介面現在預設為 **English**，並可在右上角（**New Project** 之後）一鍵切換為繁體中文（Traditional Chinese），偏好設定持久化於 `localStorage` 的 `kanban-lang`。以零框架方式實作：`I18N` 字典（`en` / `zh-TW`）+ `t()` helper、靜態標記用 `data-i18n` 屬性、狀態標籤改為 locale-aware — 每個動態字串（卡片、彈窗、toast、篩選標籤、排序選項）都會在切換時重新渲染。僅限前端（`public/index.html`）— 不變更 REST API 或 DB schema。`README` 與 `CHANGELOG` 現在同時提供英文版（預設）與繁體中文版（`README.zh-TW.md`、`CHANGELOG.zh-TW.md`）。
 
 ## [1.3.0] - 2026-06-25
 
