@@ -511,7 +511,7 @@ function switchView(view) {
   const oldCols = [...board.children]            // current columns + the add-col placeholder
   const rerender = () => render({ viewSwitch: true })
   if (window.gsap && oldCols.length) {
-    gsap.killTweensOf(oldCols)                   // drop any in-flight tween on rapid toggles
+    gsap.killTweensOf(oldCols)                   // drop the outgoing fade if a rapid re-toggle interrupts it
     gsap.to(oldCols, {
       opacity: 0, y: -6, duration: .16, stagger: .01, ease: 'power2.out', onComplete: rerender,
     })
@@ -586,6 +586,8 @@ function render(opts = {}) {
   } else if (!opts.viewSwitch) {
     flipColHeights(board, prevColHeights)
   }
+  // The implicit third case — opts.viewSwitch but no gsap — falls through here:
+  // the new view is already rendered above, so the columns just appear instantly.
 }
 
 // Project view — columns are projects (原本的看板,行為不變)
