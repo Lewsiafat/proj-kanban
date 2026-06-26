@@ -7,8 +7,8 @@ f=$(printf '%s' "$j" | jq -r '.tool_input.file_path // empty')
 case "$f" in
   */public/index.html)
     b=$(printf '%s' "$j" | jq -r '.tool_input.new_string // .tool_input.content // empty')
-    printf '%s' "$b" | grep -qE 'status-|<option value=|labels' && \
-      printf '%s' '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"提醒：card status 是 open string，新增或修改 status 需同步三處 — index.html 的 <select> 選項、cardHTML() 的 labels map、以及 .status-* CSS（見 CLAUDE.md）。"}}'
+    printf '%s' "$b" | grep -qE 'STATUSES|statusLabel|status_|status-' && \
+      printf '%s' '{"hookSpecificOutput":{"hookEventName":"PostToolUse","additionalContext":"Reminder: card status is an open string. Adding or changing a status needs three synced edits — the STATUSES constant (key + emoji), a status_<key> entry in BOTH the en and zh-TW maps of the I18N dictionary, and the matching .status-* CSS classes (see CLAUDE.md)."}}'
     ;;
 esac
 true
