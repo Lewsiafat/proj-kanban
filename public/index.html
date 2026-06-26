@@ -94,6 +94,16 @@
   }
   .view-btn:hover { color: var(--text); }
   .view-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
+  .sort-select {
+    height: 34px; padding: 0 10px;
+    background: var(--surface);
+    border: 1px solid var(--border-st);
+    border-radius: 10px;
+    font-family: var(--font-body); font-size: 13px; font-weight: 500;
+    color: var(--text2); cursor: pointer;
+    transition: all 140ms var(--ease);
+  }
+  .sort-select:hover { color: var(--text); border-color: var(--text2); }
 
   /* Board */
   .board {
@@ -359,6 +369,15 @@
     <button class="view-btn" data-view="project" onclick="switchView('project')">專案視圖</button>
     <button class="view-btn" data-view="status" onclick="switchView('status')">狀態視圖</button>
   </div>
+  <select class="sort-select" id="cardSort" onchange="setCardSort(this.value)" title="卡片排序">
+    <option value="default">預設</option>
+    <option value="updated-desc">更新時間（新→舊）</option>
+    <option value="updated-asc">更新時間（舊→新）</option>
+    <option value="created-desc">建立時間（新→舊）</option>
+    <option value="created-asc">建立時間（舊→新）</option>
+    <option value="status-asc">狀態（正序）</option>
+    <option value="status-desc">狀態（反序）</option>
+  </select>
   <div class="header-actions">
     <button class="btn btn-primary" onclick="openProjectModal()">＋ 新增專案</button>
   </div>
@@ -524,6 +543,47 @@ function updateViewSwitch() {
   document.querySelectorAll('.view-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.view === currentView)
   })
+  // sort dropdown only applies to the project view
+  const sortEl = document.getElementById('cardSort')
+  if (sortEl) {
+    sortEl.classList.toggle('hidden', currentView !== 'project')
+    sortEl.value = cardSort
+  }
+}
+
+// ── Card sort (project view, localStorage) ──────────────────
+const CARD_SORT_KEY = 'kanban-card-sort'
+const CARD_SORTS = ['default', 'updated-desc', 'updated-asc', 'created-desc', 'created-asc', 'status-asc', 'status-desc']
+const STATUS_ORDER = Object.fromEntries(STATUSES.map((s, i) => [s.key, i]))
+let cardSort = loadCardSort()
+
+function loadCardSort() {
+  const v = localStorage.getItem(CARD_SORT_KEY)
+  return CARD_SORTS.includes(v) ? v : 'default'
+}
+
+function setCardSort(value) {
+  cardSort = CARD_SORTS.includes(value) ? value : 'default'
+  localStorage.setItem(CARD_SORT_KEY, cardSort)
+  render()
+}
+
+// Sort a project's cards by the current cardSort. 'default' keeps the server's
+// position,id order. Time fields are 'YYYY-MM-DD HH:MM:SS' strings, so lexical
+// compare == chronological; sign flips asc/desc.
+function sortCards(cards) {
+  if (cardSort === 'default') return cards
+  const [field, dir] = cardSort.split('-')
+  const sign = dir === 'asc' ? 1 : -1
+  const arr = [...cards]
+  if (field === 'status') {
+    arr.sort((a, b) =>
+      sign * ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)) || a.position - b.position)
+  } else {
+    const key = field === 'updated' ? 'updated_at' : 'created_at'
+    arr.sort((a, b) => sign * a[key].localeCompare(b[key]))
+  }
+  return arr
 }
 
 // ── Project filter (status view, localStorage) ──────────────
@@ -609,7 +669,7 @@ function renderProjectView(board) {
         </div>
       </div>
       <div class="col-body" id="col-${p.id}">
-        ${p.cards.filter(matchesFilter).map(c => cardHTML(c)).join('')}
+        ${sortCards(p.cards.filter(matchesFilter)).map(c => cardHTML(c)).join('')}
       </div>
       <button class="add-card-btn" onclick="openCardModal(${p.id})">＋ 新增更新</button>
     `
