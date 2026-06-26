@@ -7,6 +7,14 @@
 
 [English](./CHANGELOG.md) · **繁體中文**
 
+## [1.4.1] - 2026-06-26
+
+### 變更
+- **`.claude/` 開源/fork-readiness 整理** — 將第三方 superpowers plugin 技能（`executing-plans/`、`writing-plans/`）加入 gitignore、從 tracked `settings.json` 移除個人專用的 `mcp__playwright__*` 權限 wildcard（gitignored 的 `settings.local.json` 仍保留本機的具體權限），並把三個 fork-facing 的繁中檔英文化：`remind-status-sync.sh` hook、`reset-db` skill、`api-skill-sync-reviewer` agent。僅限開發工具 — 不變更 `src/` / `public/`、REST API 或 DB schema。詳見 `specs/claude-fork-readiness-walkthrough.md`。
+
+### 修正
+- **`remind-status-sync.sh` i18n drift** — hook 的提醒文字與觸發 grep 已過時（仍指舊的 `<select>` 選項 / `cardHTML()` 的 `labels` map）。現已對齊現況 i18n-driven 的三處：`STATUSES` 常數、`I18N` 字典中 `en` 與 `zh-TW` **兩語系**的 `status_<key>`、以及 `.status-*` CSS 類別（與 `CLAUDE.md` 一致）。
+
 ## [1.4.0] - 2026-06-26
 
 ### 新增

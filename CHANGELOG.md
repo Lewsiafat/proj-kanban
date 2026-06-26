@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **English** · [繁體中文](./CHANGELOG.zh-TW.md)
 
+## [1.4.1] - 2026-06-26
+
+### Changed
+- **`.claude/` made fork-safe** — gitignored the third-party superpowers plugin skills (`executing-plans/`, `writing-plans/`), removed the personal `mcp__playwright__*` permission wildcard from tracked `settings.json` (the gitignored `settings.local.json` keeps the machine's specific allows), and converted the three remaining fork-facing Chinese files to English: the `remind-status-sync.sh` hook, the `reset-db` skill, and the `api-skill-sync-reviewer` agent. Developer-tooling only — no `src/` / `public/`, REST API, or DB schema change. See `specs/claude-fork-readiness-walkthrough.md`.
+
+### Fixed
+- **`remind-status-sync.sh` i18n drift** — the hook's reminder text and its trigger grep were stale (they named the old `<select>` options / `cardHTML()` `labels` map). They now match the current i18n-driven three places: the `STATUSES` constant, a `status_<key>` entry in **both** the `en` and `zh-TW` maps of the `I18N` dictionary, and the `.status-*` CSS classes (aligned with `CLAUDE.md`).
+
 ## [1.4.0] - 2026-06-26
 
 ### Added
