@@ -27,6 +27,7 @@ Other Claude Code helpers live in `.claude/` (committed with the repo):
 - **Hooks** (`.claude/settings.json` → `.claude/hooks/*.sh`, fired on every `Edit|Write`): `check-src-syntax.sh` runs `node --check` on `src/index.js` — the only safety net given there are no tests/linter, surfacing syntax errors back to the agent; `remind-status-sync.sh` fires the three-places reminder below when an edit to `public/index.html` touches the status UI.
 - **`api-skill-sync-reviewer`** (`.claude/agents/`): read-only subagent that checks the `proj-kanban-api` skill docs against `src/index.js`; run it after changing endpoints.
 - **`reset-db`** (`.claude/skills/`, user-invoked): backs up and recreates the SQLite DB for the migration-less schema changes noted above.
+- **`release`** (`.claude/skills/`, user-invoked): project-local release skill — bumps `package.json` and the plugin's `plugin.json` to the same version, updates the bilingual `CHANGELOG`, commits (staging `.claude/` and `plugins/`), tags `vX.Y.Z`, and pushes. Supersedes the generic global `release` skill for this repo.
 
 ### Things that will trip you up
 
