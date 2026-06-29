@@ -1,0 +1,12 @@
+{
+  "name": "proj-kanban",
+  "owner": { "name": "Lewsifat", "email": "lewsiafat@gmail.com" },
+  "description": "proj-kanban skills & tools",
+  "plugins": [
+    {
+      "name": "proj-kanban-api",
+      "source": "./plugins/proj-kanban-api",
+      "description": "Drive a proj-kanban board over its REST API (7 endpoints)."
+    }
+  ]
+}
