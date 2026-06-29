@@ -44,6 +44,17 @@ http://localhost:10023/proj-kanban/api
 API="http://localhost:10023/proj-kanban/api"
 ```
 
+## Getting a server
+
+These calls need a running proj-kanban server. If none is up, start one:
+
+```bash
+git clone https://github.com/Lewsiafat/proj-kanban.git
+cd proj-kanban && npm install && npm start
+```
+
+It serves at the default `http://localhost:10023/proj-kanban/api`. For a different host, `PORT`, or `BASE_PATH`, substitute it — the API always lives at `/${BASE_PATH}/api`.
+
 ## Task → endpoint decision guide
 
 | You want to…                                  | Call                                       |
