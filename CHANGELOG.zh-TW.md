@@ -7,6 +7,16 @@
 
 [English](./CHANGELOG.md) · **繁體中文**
 
+## [1.5.0] - 2026-06-29
+
+### 新增
+- 將 `proj-kanban-api` skill 包裝成可分享的 skill-only **Claude Code plugin**(位於 `plugins/proj-kanban-api/`),本 repo 同時兼做其 marketplace（`.claude-plugin/marketplace.json`）。透過 `/plugin marketplace add Lewsiafat/proj-kanban` 再 `/plugin install proj-kanban-api@proj-kanban` 安裝。
+- Plugin onboarding 文件（`plugins/proj-kanban-api/README.md` / `README.zh-TW.md`），以及 skill `SKILL.md` 的「Getting a server」段。
+- 本 repo 專屬、plugin-aware 的 `release` skill,同步 bump `package.json` 與 plugin 的 `plugin.json`（版號 invariant:`package.json` === `plugin.json` === tag）。
+
+### 變更
+- 將 skill 從 `.claude/skills/proj-kanban-api/` 搬到 `plugins/proj-kanban-api/skills/proj-kanban-api/`（保留 git 歷史），並更新所有引用（`api-skill-sync-reviewer` agent、`CLAUDE.md`、`README` EN/zh-TW）。repo 內開發現在需先安裝 plugin,skill 才會載入。不變更 `src/` / `public/`、REST API 或 DB schema。詳見 `specs/proj-kanban-api-plugin-walkthrough.md`。
+
 ## [1.4.1] - 2026-06-26
 
 ### 變更

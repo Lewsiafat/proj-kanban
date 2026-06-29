@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **English** · [繁體中文](./CHANGELOG.zh-TW.md)
 
+## [1.5.0] - 2026-06-29
+
+### Added
+- Packaged the `proj-kanban-api` skill as a shareable, skill-only **Claude Code plugin** under `plugins/proj-kanban-api/`, with this repo doubling as its marketplace (`.claude-plugin/marketplace.json`). Install via `/plugin marketplace add Lewsiafat/proj-kanban` then `/plugin install proj-kanban-api@proj-kanban`.
+- Plugin onboarding docs (`plugins/proj-kanban-api/README.md` / `README.zh-TW.md`) and a "Getting a server" section in the skill's `SKILL.md`.
+- Project-local, plugin-aware `release` skill that bumps `package.json` and the plugin's `plugin.json` in lockstep (version invariant: `package.json` === `plugin.json` === tag).
+
+### Changed
+- Moved the skill from `.claude/skills/proj-kanban-api/` to `plugins/proj-kanban-api/skills/proj-kanban-api/` (git history preserved) and repointed every reference (`api-skill-sync-reviewer` agent, `CLAUDE.md`, `README` EN/zh-TW). In-repo development now requires installing the plugin first for the skill to load. No `src/` / `public/`, REST API, or DB schema change. See `specs/proj-kanban-api-plugin-walkthrough.md`.
+
 ## [1.4.1] - 2026-06-26
 
 ### Changed
