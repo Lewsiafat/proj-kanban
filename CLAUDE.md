@@ -20,7 +20,7 @@ A single Express server (`src/index.js`, ~140 lines) serves both a REST API and 
 
 Data model: a **project** is a board column; a **card** is a status update inside it. Two tables (`projects`, `cards` with `ON DELETE CASCADE`), created inline at startup via `CREATE TABLE IF NOT EXISTS` — **there are no migrations**, so changing a column means editing the schema and recreating the DB file.
 
-An AI-agent skill for this REST API ships in `.claude/skills/proj-kanban-api/` (`SKILL.md` operating guide + full per-endpoint contract in `references/api.md`); keep it in sync with `src/index.js` when endpoints change.
+An AI-agent skill for this REST API ships as a **Claude Code plugin** in `plugins/proj-kanban-api/` (skill at `skills/proj-kanban-api/` — `SKILL.md` operating guide + full per-endpoint contract in `references/api.md`); keep it in sync with `src/index.js` when endpoints change. This repo doubles as the plugin's marketplace (`.claude-plugin/marketplace.json`). **The skill no longer lives under `.claude/skills/`, so it is not auto-loaded while you work in this repo — install it first: `/plugin marketplace add .` then `/plugin install proj-kanban-api@proj-kanban`.**
 
 Other Claude Code helpers live in `.claude/` (committed with the repo):
 
