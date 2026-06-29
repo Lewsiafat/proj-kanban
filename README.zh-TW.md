@@ -65,7 +65,14 @@ Status 值：`active` | `pending` | `done` | `blocked` | `archived`
 
 ## AI Agent Skill
 
-內建的 Claude skill（`.claude/skills/proj-kanban-api/`）會教 AI agent 透過此 REST API 操作看板 — 包含端點選擇、正確的 request body 以及各種陷阱 — 讓 agent 不必猜測 API 形狀。擁有此 repo 的 agent 會自動發現它；也可複製到其他專案的 `.claude/skills/` 或 `~/.claude/skills/` 使用。
+一個 Claude skill（`plugins/proj-kanban-api/skills/proj-kanban-api/`）會教 AI agent 透過此 REST API 操作看板 — 包含端點選擇、正確的 request body 以及各種陷阱 — 讓 agent 不必猜測 API 形狀。它以 **Claude Code plugin** 形式發布,本 repo 同時兼做其 marketplace:
+
+```bash
+/plugin marketplace add Lewsiafat/proj-kanban
+/plugin install proj-kanban-api@proj-kanban
+```
+
+詳見 `plugins/proj-kanban-api/README.zh-TW.md`。
 
 ## Stack
 

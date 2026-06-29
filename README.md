@@ -65,7 +65,14 @@ Status values: `active` | `pending` | `done` | `blocked` | `archived`
 
 ## AI Agent Skill
 
-A bundled Claude skill (`.claude/skills/proj-kanban-api/`) teaches AI agents to drive the board over this REST API — endpoint selection, correct request bodies, and the footguns — so agents don't have to guess the API shape. Agents that have the repo discover it automatically; it can also be copied into another project's `.claude/skills/` or `~/.claude/skills/`.
+A Claude skill (`plugins/proj-kanban-api/skills/proj-kanban-api/`) teaches AI agents to drive the board over this REST API — endpoint selection, correct request bodies, and the footguns — so agents don't have to guess the API shape. It ships as a **Claude Code plugin**, and this repo doubles as its marketplace:
+
+```bash
+/plugin marketplace add Lewsiafat/proj-kanban
+/plugin install proj-kanban-api@proj-kanban
+```
+
+See `plugins/proj-kanban-api/README.md` for details.
 
 ## Stack
 
