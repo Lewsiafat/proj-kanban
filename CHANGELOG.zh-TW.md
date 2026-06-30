@@ -7,6 +7,18 @@
 
 [English](./CHANGELOG.md) · **繁體中文**
 
+## [1.6.0] - 2026-06-30
+
+### 新增
+- **淺色與深色主題** — 介面現在同時提供淺色與深色,套用 **Direction A「Calm」** 改版（sage 綠主色、`Mulish` + `Noto Sans TC` 字型、柔和浮動卡片、三層 **底板 → lane → 卡片** surface ramp）。切換鈕（🌙/☀️）位於語言切換鈕右側;預設跟隨系統 `prefers-color-scheme`,並持久化於 `localStorage` 的 `kanban-theme`。完全以 CSS variables 驅動（`:root` + `[data-theme="dark"]`），並在 `<head>` 加 pre-paint 腳本避免閃爍。純前端 — 不變更 REST API 或 DB schema。詳見 `specs/kanban-redesign-walkthrough.md`。
+
+### 變更
+- **全面視覺改版**為「Calm」方向:字型由 Fraunces/Geist 改為 `Mulish` + `Noto Sans TC`、sage 綠主色、重做看板/卡片/欄/modal/header/footer、狀態 badge 主題感知配色,New Project 色票改為設計稿的 6 色（專案既有顏色仍可選）。所有既有行為（雙視圖、篩選、拖曳、排序、GSAP 過場、i18n）皆保留;5 個狀態與 `proj-kanban-api` REST 契約未變。
+- header 版本 chip 改為**單一來源自 `package.json`** — server 送出 `index.html` 時置換 `__APP_VERSION__` token（per-request 讀取,dev 即時編輯仍可見），顯示的版本會自動跟隨每次 release。
+
+### 修正
+- 前端版本 chip 原本寫死為 `v1.0.1`、從不跟隨 release;現已反映實際的 `package.json` 版本。
+
 ## [1.5.0] - 2026-06-29
 
 ### 新增

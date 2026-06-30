@@ -1,6 +1,6 @@
 {
   "name": "proj-kanban-api",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Read and mutate a proj-kanban kanban board over its REST API.",
   "author": { "name": "Lewsifat", "email": "lewsiafat@gmail.com" },
   "repository": "https://github.com/Lewsiafat/proj-kanban",

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **English** · [繁體中文](./CHANGELOG.zh-TW.md)
 
+## [1.6.0] - 2026-06-30
+
+### Added
+- **Light & dark themes** — the UI now ships in both light and dark, applying the **Direction A「Calm」** redesign (sage accent, `Mulish` + `Noto Sans TC` type, soft floating cards, a 3-step **board → lane → card** surface ramp). A toggle (🌙/☀️) sits right of the language switch; it defaults to your system `prefers-color-scheme` and persists to `localStorage` under `kanban-theme`. Driven entirely by CSS variables (`:root` + `[data-theme="dark"]`) with a pre-paint script in `<head>` to avoid a flash-of-wrong-theme. Frontend-only — no REST API or DB schema change. See `specs/kanban-redesign-walkthrough.md`.
+
+### Changed
+- **Full visual redesign** to the「Calm」direction: fonts swapped from Fraunces/Geist to `Mulish` + `Noto Sans TC`, sage-green accent, restyled board/cards/columns/modals/header/footer, theme-aware status badges, and the New Project palette updated to the design's 6 colours (a project's existing colour stays selectable). All existing behaviour (two views, filters, drag-and-drop, sort, GSAP transitions, i18n) is preserved; the 5 statuses and the `proj-kanban-api` REST contract are unchanged.
+- The header version chip is now **single-sourced from `package.json`** — the server substitutes an `__APP_VERSION__` token when serving `index.html` (read per request, so dev live-edits still show), so the displayed version follows each release automatically.
+
+### Fixed
+- The frontend version chip was hardcoded to `v1.0.1` and never tracked releases; it now reflects the actual `package.json` version.
+
 ## [1.5.0] - 2026-06-29
 
 ### Added
