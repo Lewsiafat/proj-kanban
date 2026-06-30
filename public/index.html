@@ -4,28 +4,71 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Project Kanban</title>
+<script>
+  // Apply persisted/system theme before first paint to avoid a flash.
+  (function () {
+    var t = localStorage.getItem('kanban-theme')
+    if (t !== 'light' && t !== 'dark')
+      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light'
+    document.documentElement.setAttribute('data-theme', t)
+  })()
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg:         #f4ecdd;
-    --surface:    #ece1ce;
-    --surface2:   #fffdf7;
-    --border:     #e3d6bf;
-    --border-st:  #d3c2a4;
-    --text:       #312a20;
-    --text2:      #8d8473;
-    --accent:     #cf7a4b;
-    --danger:     #d9705e;
-    --success:    #6fa86b;
-    --warn:       #d99a3c;
-    --shadow-sm:  0 1px 2px rgba(80,60,30,.05), 0 2px 8px rgba(80,60,30,.04);
-    --shadow-md:  0 8px 24px -6px rgba(80,60,30,.18), 0 2px 6px rgba(80,60,30,.10);
-    --radius:     10px;
-    --ease:       cubic-bezier(.2,.8,.2,1);
-    --font-body:  'Geist', -apple-system, sans-serif;
-    --font-head:  'Fraunces', Georgia, serif;
+    --bg:          #ecebe5;
+    --surface:     #ffffff;
+    --surface2:    #ffffff;
+    --col-bg:      #f6f5f1;
+    --col-border:  #e4e2da;
+    --border:      #ecebe6;
+    --border-st:   #e3e2dd;
+    --text:        #1f2421;
+    --text2:       #6b7269;
+    --accent:      #5c9a7b;
+    --accent-hover:#4f8a6c;
+    --accent-tint: #eaf1ec;
+    --accent-bd:   #bfd8c7;
+    --accent-on:   #ffffff;
+    --danger:      #c77a6b;
+    --ver-bg:      #ecece8;
+    --ver-text:    #aeb4ab;
+    --scrim:       rgba(31,36,33,.38);
+    --shadow-sm:   0 1px 2px rgba(31,36,33,.04), 0 4px 14px rgba(31,36,33,.05);
+    --shadow-md:   0 2px 4px rgba(31,36,33,.06), 0 12px 26px rgba(31,36,33,.09);
+    --shadow-modal:0 20px 50px rgba(31,36,33,.18);
+    --radius:      10px;
+    --radius-card: 14px;
+    --ease:        cubic-bezier(.2,.8,.2,1);
+    --font-body:   'Mulish', 'Noto Sans TC', -apple-system, sans-serif;
+    --font-head:   'Mulish', 'Noto Sans TC', -apple-system, sans-serif;
+  }
+
+  [data-theme="dark"] {
+    --bg:          #101214;
+    --surface:     #21252a;
+    --surface2:    #272c32;
+    --col-bg:      #1a1d21;
+    --col-border:  #23262a;
+    --border:      #2c3033;
+    --border-st:   #2c3033;
+    --text:        #ecedeb;
+    --text2:       #a2a89f;
+    --accent:      #79b596;
+    --accent-hover:#8ac4a5;
+    --accent-tint: #1e2e25;
+    --accent-bd:   #2f5a45;
+    --accent-on:   #11231a;
+    --danger:      #d98d7e;
+    --ver-bg:      #23262a;
+    --ver-text:    #7c837b;
+    --scrim:       rgba(0,0,0,.6);
+    --radius-card: 11px;
+    --shadow-sm:   0 1px 2px rgba(0,0,0,.25);
+    --shadow-md:   0 2px 4px rgba(0,0,0,.3), 0 12px 26px rgba(0,0,0,.35);
+    --shadow-modal:0 20px 50px rgba(0,0,0,.5);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,9 +81,9 @@
     display: flex;
     flex-direction: column;
     -webkit-font-smoothing: antialiased;
-    background-image: radial-gradient(circle at 50% 50%, rgba(150,110,60,.04) .5px, transparent .6px);
-    background-size: 6px 6px;
+    transition: background-color .25s var(--ease), color .25s var(--ease);
   }
+  [data-theme="dark"] body { background-image: none; }
 
   /* Header */
   header {
@@ -53,11 +96,26 @@
   }
   header h1 {
     font-family: var(--font-head);
-    font-size: 20px; font-weight: 500;
-    letter-spacing: -.02em; color: var(--text);
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -.01em; color: var(--text);
   }
   header h1 span { color: var(--accent); }
-  .header-actions { margin-left: auto; display: flex; gap: 8px; }
+  .ver-chip {
+    font-size: 10px; font-weight: 700; letter-spacing: .02em;
+    color: var(--ver-text); background: var(--ver-bg);
+    padding: 2px 6px; border-radius: 5px; align-self: center;
+  }
+  .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .theme-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 10px;
+    border: 1px solid var(--border-st); background: var(--surface);
+    color: var(--text2); cursor: pointer; font-size: 15px; line-height: 1;
+    box-shadow: var(--shadow-sm);
+    transition: all 140ms var(--ease);
+  }
+  .theme-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--text2); }
+  .theme-btn:active { transform: translateY(0) scale(.99); }
 
   .btn {
     display: inline-flex; align-items: center; gap: 6px;
@@ -73,8 +131,8 @@
   }
   .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); border-color: var(--text2); }
   .btn:active { transform: translateY(0) scale(.99); }
-  .btn-primary { background: var(--accent); color: #fff; border-color: color-mix(in oklab, var(--accent) 80%, #000 10%); font-weight: 600; }
-  .btn-primary:hover { background: color-mix(in oklab, var(--accent) 90%, #fff 10%); border-color: color-mix(in oklab, var(--accent) 80%, #000 10%); }
+  .btn-primary { background: var(--accent); color: var(--accent-on); border-color: var(--accent); font-weight: 700; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
   .btn-ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--text2); }
   .btn-ghost:hover { background: color-mix(in oklab, var(--text2) 12%, transparent); box-shadow: none; transform: none; }
   .btn-danger { color: var(--danger); border-color: transparent; background: transparent; box-shadow: none; }
@@ -93,7 +151,7 @@
     transition: all 140ms var(--ease);
   }
   .view-btn:hover { color: var(--text); }
-  .view-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
+  .view-btn.active { background: var(--accent-tint); color: var(--accent); box-shadow: none; }
   .lang-switch {
     display: inline-flex; gap: 2px;
     background: var(--surface);
@@ -107,7 +165,7 @@
     transition: all 140ms var(--ease);
   }
   .lang-btn:hover { color: var(--text); }
-  .lang-btn.active { background: var(--surface2); color: var(--text); box-shadow: var(--shadow-sm); }
+  .lang-btn.active { background: var(--accent-tint); color: var(--accent); box-shadow: none; }
   .sort-select {
     height: 34px; padding: 0 10px;
     background: var(--surface);
@@ -134,12 +192,12 @@
   /* Column */
   .col {
     min-width: 280px; max-width: 280px;
-    background: var(--surface);
-    border-radius: 16px;
-    border: 1px solid var(--border);
+    background: var(--col-bg);
+    border-radius: 14px;
+    border: 1px solid var(--col-border);
     display: flex; flex-direction: column;
     max-height: calc(100vh - 108px);
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    transition: border-color .15s, box-shadow .15s, background .25s, color .25s;
   }
   .col.dragging { opacity: 0.35; }
   .card.dragging { opacity: 0.4; }
@@ -150,13 +208,12 @@
   }
   .col-header {
     display: flex; align-items: center; gap: 8px;
-    padding: 12px 14px 10px;
-    border-bottom: 1px solid var(--border-st);
+    padding: 12px 14px 8px;
     flex-shrink: 0;
   }
   .col-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
   .col-title {
-    font-family: var(--font-head); font-size: 14px; font-weight: 500;
+    font-family: var(--font-head); font-size: 14px; font-weight: 700;
     letter-spacing: -.01em; flex: 1; cursor: pointer; color: var(--text);
   }
   .col-title:hover { color: var(--accent); }
@@ -195,11 +252,11 @@
   .card {
     background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 13px;
+    border-radius: var(--radius-card);
+    padding: 14px;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
-    transition: transform 140ms var(--ease), box-shadow 140ms var(--ease), border-color 140ms var(--ease);
+    transition: transform 140ms var(--ease), box-shadow 140ms var(--ease), border-color 140ms var(--ease), background 140ms var(--ease);
   }
   .card:hover {
     transform: translateY(-2px);
@@ -209,32 +266,37 @@
   /* disable CSS transition while gsap drives the entrance (avoids a 140ms transform tail) */
   .card.anim { transition: none; }
   .card-title {
-    font-family: var(--font-head); font-size: 14px; font-weight: 500;
-    line-height: 1.35; color: var(--text);
+    font-family: var(--font-head); font-size: 14px; font-weight: 700;
+    line-height: 1.3; color: var(--text);
   }
   .card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .card-status { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
   .card-time { font-size: 11px; color: var(--text2); margin-left: auto; }
   .card-memo {
-    font-size: 12px; color: var(--text2); margin-top: 6px;
-    line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+    font-size: 12.5px; color: var(--text2); margin-top: 6px;
+    line-height: 1.5; white-space: pre-wrap; word-break: break-word;
   }
 
-  /* Status badges — warm muted palette */
-  .status-active   { background: rgba(139,127,209,.18); color: #5d52a3; }
-  .status-done     { background: rgba(111,168,107,.18); color: #3d7539; }
-  .status-blocked  { background: rgba(217,112, 94,.18); color: #a84331; }
-  .status-pending  { background: rgba(217,154, 60,.18); color: #8a5e10; }
-  .status-archived { background: rgba(168,156,138,.18); color: #6b5f4f; }
+  /* Status badges — theme-aware palette (light defaults + dark overrides) */
+  .status-active   { background: rgba(91,141,239,.15);  color: #3b63b5; }
+  .status-pending  { background: rgba(224,169,91,.18);  color: #946612; }
+  .status-done     { background: rgba(111,168,107,.18); color: #4a7d45; }
+  .status-blocked  { background: rgba(232,131,107,.16); color: #b1503a; }
+  .status-archived { background: rgba(140,147,139,.16); color: #6b7269; }
+  [data-theme="dark"] .status-active   { background: rgba(91,141,239,.22);  color: #9dbcf5; }
+  [data-theme="dark"] .status-pending  { background: rgba(224,169,91,.22);  color: #e6c189; }
+  [data-theme="dark"] .status-done     { background: rgba(121,181,150,.22); color: #9bd0b4; }
+  [data-theme="dark"] .status-blocked  { background: rgba(232,131,107,.22); color: #f0a892; }
+  [data-theme="dark"] .status-archived { background: rgba(160,168,159,.20); color: #b6bcb4; }
 
   /* Status view */
   .col-title-static {
-    font-family: var(--font-head); font-size: 14px; font-weight: 500;
+    font-family: var(--font-head); font-size: 14px; font-weight: 700;
     letter-spacing: -.01em; flex: 1; color: var(--text);
   }
   .card-project { display: flex; align-items: center; gap: 6px; margin-bottom: 7px; }
   .card-project-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .card-project-name { font-size: 11px; font-weight: 600; color: var(--text2); }
+  .card-project-name { font-size: 11px; font-weight: 700; color: var(--text2); }
 
   /* Add card btn */
   .add-card-btn {
@@ -272,24 +334,24 @@
   /* Modal */
   .modal-overlay {
     position: fixed; inset: 0;
-    background: color-mix(in oklab, var(--text) 38%, transparent);
+    background: var(--scrim);
     backdrop-filter: blur(3px);
     display: flex; align-items: center; justify-content: center;
     z-index: 100; padding: 20px;
     animation: fade 160ms var(--ease);
   }
   .modal {
-    background: var(--bg);
+    background: var(--surface2);
     border: 1px solid var(--border-st);
-    border-radius: 18px;
+    border-radius: 16px;
     width: 100%; max-width: 440px;
     padding: 24px 26px;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-modal);
     animation: pop 200ms var(--ease);
   }
   .modal h2 {
-    font-family: var(--font-head); font-size: 20px; font-weight: 500;
-    margin-bottom: 18px; letter-spacing: -.02em; color: var(--text);
+    font-family: var(--font-head); font-size: 18px; font-weight: 800;
+    margin-bottom: 18px; letter-spacing: -.01em; color: var(--text);
   }
   .form-group { margin-bottom: 14px; }
   .form-group label {
@@ -320,12 +382,12 @@
   .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
   .color-row { display: flex; gap: 9px; flex-wrap: wrap; }
   .color-opt {
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 8px;
     cursor: pointer; border: 2px solid transparent;
     transition: transform 120ms var(--ease);
   }
-  .color-opt:hover { transform: scale(1.14); }
-  .color-opt.selected { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+  .color-opt:hover { transform: scale(1.1); }
+  .color-opt.selected { box-shadow: 0 0 0 2px var(--surface2), 0 0 0 4px var(--text); }
 
   /* Toast */
   .toast {
@@ -372,13 +434,13 @@
   .filter-chip.chip-all.active { background: color-mix(in oklab, var(--accent) 16%, transparent); color: var(--accent); }
   .filter-chip .chip-count { font-variant-numeric: tabular-nums; opacity: .8; }
   .filter-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .footer-ver { margin-left: auto; font-size: 11px; color: var(--text2); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>📋 Project <span>Kanban</span></h1>
+  <span class="ver-chip" id="verChip">v1.0.1</span>
   <div class="view-switch" id="viewSwitch">
     <button class="view-btn" data-view="project" onclick="switchView('project')" data-i18n="nav_view_project">Projects</button>
     <button class="view-btn" data-view="status" onclick="switchView('status')" data-i18n="nav_view_status">Statuses</button>
@@ -398,6 +460,7 @@
       <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
       <button class="lang-btn" data-lang="zh-TW" onclick="setLang('zh-TW')">繁中</button>
     </div>
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle theme">🌙</button>
   </div>
 </header>
 
@@ -406,7 +469,6 @@
 <footer>
   <span>📋 Project Kanban</span>
   <div class="status-bar" id="statusBar"></div>
-  <span class="footer-ver" id="footerVer">v1.0.1</span>
 </footer>
 
 <!-- Project Modal -->
@@ -462,7 +524,7 @@
 const BASE = window.location.pathname.replace(/\/$/, '')
 const API  = BASE + '/api'
 
-const COLORS = ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#3b82f6','#ef4444','#14b8a6','#f97316','#64748b']
+const COLORS = ['#E8836B','#E0A95B','#7FB069','#4FB5A8','#5B8DEF','#9B7BE0']
 
 const STATUSES = [
   { key: 'active',   emoji: '🟣' },
@@ -517,6 +579,8 @@ const I18N = {
     toast_need_title: 'Please enter a title',
     toast_need_project: 'Please select a project',
     confirm_delete_card: 'Delete this card?',
+    theme_to_dark: 'Switch to dark mode',
+    theme_to_light: 'Switch to light mode',
   },
   'zh-TW': {
     nav_view_project: '專案視圖',
@@ -561,6 +625,8 @@ const I18N = {
     toast_need_title: '請輸入標題',
     toast_need_project: '請選擇專案',
     confirm_delete_card: '確定刪除這張卡片？',
+    theme_to_dark: '切換深色模式',
+    theme_to_light: '切換淺色模式',
   },
 }
 
@@ -613,7 +679,28 @@ function setLang(l) {
   document.documentElement.lang = (lang === 'zh-TW' ? 'zh-Hant' : 'en')
   applyStaticI18n()
   updateLangSwitch()
+  applyTheme()
   render()
+}
+
+// ── Theme (light | dark) ────────────────────────────────────
+// The pre-paint script in <head> already set <html data-theme>; read it back
+// as the single source of truth so the attribute and JS state never diverge.
+let theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme)
+  const btn = document.getElementById('themeToggle')
+  if (btn) {
+    btn.textContent = theme === 'dark' ? '☀️' : '🌙'
+    btn.title = t(theme === 'dark' ? 'theme_to_light' : 'theme_to_dark')
+  }
+}
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark'
+  localStorage.setItem('kanban-theme', theme)
+  applyTheme()
 }
 
 let state = { projects: [] }
@@ -1154,8 +1241,11 @@ function openProjectModal(id) {
 
   // color picker
   const cr = document.getElementById('colorRow')
-  cr.innerHTML = COLORS.map(c => `
-    <div class="color-opt ${(p?.color||'#6366f1')===c?'selected':''}"
+  const cur = p?.color || '#7FB069'
+  // keep a project's existing colour selectable even if it predates the current palette
+  const palette = COLORS.includes(cur) ? COLORS : [cur, ...COLORS]
+  cr.innerHTML = palette.map(c => `
+    <div class="color-opt ${cur===c?'selected':''}"
          style="background:${c}" data-color="${c}"
          onclick="selectColor(this)"></div>
   `).join('')
@@ -1171,7 +1261,7 @@ function selectColor(el) {
 
 async function saveProject() {
   const name = document.getElementById('projectName').value.trim()
-  const color = document.querySelector('.color-opt.selected')?.dataset.color || '#6366f1'
+  const color = document.querySelector('.color-opt.selected')?.dataset.color || '#7FB069'
   if (!name) return toast(t('toast_need_project_name'))
   try {
     if (editing.id) {
@@ -1276,6 +1366,7 @@ document.documentElement.lang = (lang === 'zh-TW' ? 'zh-Hant' : 'en')
 applyStaticI18n()
 updateLangSwitch()
 updateViewSwitch()
+applyTheme()
 load()
 </script>
 </body>
