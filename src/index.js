@@ -2,12 +2,13 @@ import express from 'express'
 import Database from 'better-sqlite3'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { mkdirSync } from 'fs'
+import { mkdirSync, readFileSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const BASE_PATH = process.env.BASE_PATH || 'proj-kanban'
 const PORT = process.env.PORT || 10023
 const DATA_DIR = process.env.DATA_DIR || join(__dirname, '../data')
+const APP_VERSION = JSON.parse(readFileSync(join(__dirname, '../package.json'), 'utf8')).version
 
 mkdirSync(DATA_DIR, { recursive: true })
 
@@ -134,8 +135,12 @@ r.delete('/cards/:id', (req, res) => {
 
 app.use(`/${BASE_PATH}/api`, r)
 
-// SPA fallback
-app.get(`/${BASE_PATH}`, (req, res) => res.sendFile(join(__dirname, '../public/index.html')))
-app.get(`/${BASE_PATH}/*`, (req, res) => res.sendFile(join(__dirname, '../public/index.html')))
+// SPA fallback — inject the package.json version into the __APP_VERSION__ token.
+// Read per request so live edits to index.html still show without a restart.
+const sendIndex = (req, res) => res.type('html').send(
+  readFileSync(join(__dirname, '../public/index.html'), 'utf8').replace(/__APP_VERSION__/g, 'v' + APP_VERSION)
+)
+app.get(`/${BASE_PATH}`, sendIndex)
+app.get(`/${BASE_PATH}/*`, sendIndex)
 
 app.listen(PORT, () => console.log(`proj-kanban running on :${PORT}/${BASE_PATH}`))

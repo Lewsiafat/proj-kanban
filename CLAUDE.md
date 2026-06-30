@@ -12,7 +12,7 @@ npm run dev        # run with hot-reload (node --watch)
 
 Open at `http://localhost:10023/proj-kanban/` (port and path come from `PORT` / `BASE_PATH`).
 
-There is **no build step, no test suite, and no linter** — the frontend is served as-is and the backend is plain Node.
+There is **no build step, no test suite, and no linter** — the frontend is served as-is (the SPA routes do exactly one substitution: the `__APP_VERSION__` token → `package.json` `version`, so the header version chip is single-sourced and never goes stale) and the backend is plain Node.
 
 ## Architecture
 
