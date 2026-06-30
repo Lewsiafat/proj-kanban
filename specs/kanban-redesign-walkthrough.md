@@ -22,8 +22,9 @@
   - **視覺重做**:header(加版本 chip、分段控制 active 改 accent tint)、欄、卡片、modal、footer chips、狀態 badge(5 鍵不變,
     新增 `[data-theme="dark"] .status-*` 暗色覆寫)、色票(改設計稿 6 色 + 圓角方塊選中環)。
   - **三層 surface ramp**:淺色與暗色皆為 **底板 → column lane → 卡片**(淺色 `#ecebe5` → `#f6f5f1` → `#fff`;暗色 `#101214` → `#1a1d21` → `#272c32`)。
-  - **版本字串**:由 footer 移到 header chip(移除 `#footerVer` 與 `.footer-ver`)。
-- **`CLAUDE.md`** — 「Things that will trip you up」新增主題系統說明 bullet;狀態字串 note 補上「每個狀態現在有 light + dark 兩條 `.status-*` 規則」。
+  - **版本字串**:由 footer 移到 header chip(移除 `#footerVer` 與 `.footer-ver`);chip 內容改為 `__APP_VERSION__` 占位符,由 server 注入(見 `src/index.js`)。
+- **`src/index.js`** — SPA 兩條路由改為送出 `index.html` 時把 `__APP_VERSION__` 置換為 `package.json` 的 `version`(per-request 讀取,保留 dev live-edit)。修正前端版本 chip 長期寫死 `v1.0.1`、與實際版本(1.5.0)不符;後端 7 支資料端點與 `proj-kanban-api` skill 契約未動。
+- **`CLAUDE.md`** — 「Things that will trip you up」新增主題系統說明 bullet;狀態字串 note 補上「每個狀態現在有 light + dark 兩條 `.status-*` 規則」;架構段落註明 SPA 版本注入。
 - **`specs/kanban-redesign.md`** — 任務規格(決策、token、清單、驗證標準);本次將清單打勾。
 - **`specs/kanban-redesign-walkthrough.md`** — 本文件。
 
@@ -37,6 +38,7 @@
 - **色票回歸修正**:調色盤由 10 色縮為設計稿 6 色後,既有專案的舊色(如 `#6366f1`)不在盤中 → 編輯儲存時會 fallback 靜默改色。
   修法:`openProjectModal()` 在色票列前置「專案目前顏色」(若不在盤中),確保現有色永遠可選且選中。
 - **版面模型維持現況**:固定寬度欄 + 水平捲動(專案視圖可任意多欄),未改成設計稿等寬 4 欄。
+- **版本號單一來源**:header 版本 chip 由 server 從 `package.json` 注入(`__APP_VERSION__` token),不再寫死;之後 `/release` bump `package.json` 後前端自動跟著正確,無需再手動同步。
 - **刻意未做**(超出本次範圍):手機專屬堆疊版面 + FAB、空狀態插圖、modal 雙語副標與狀態分段控制(沿用既有 `<select>` 與單語 i18n 慣例)。
 
 ## 驗證
