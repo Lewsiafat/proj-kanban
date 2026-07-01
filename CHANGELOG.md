@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **English** · [繁體中文](./CHANGELOG.zh-TW.md)
 
+## [1.7.0] - 2026-07-01
+
+A code-review hardening pass over the REST API and frontend (12 of 13 tracked findings; API
+authentication was intentionally deferred and remains open).
+
+### Added
+- **API test suite** — a self-contained `node:test` suite (`test/api.test.js`, run with `npm test`) that boots the server on a throwaway DB and exercises all 7 endpoints plus the hardening fixes. This is the repo's first automated test coverage.
+- **Schema migration mechanism** — a `meta` table now tracks `schema_version`, and an ordered `migrations` array is applied inside a transaction at startup (additive `ALTER TABLE ADD COLUMN`), replacing the old "edit the schema and recreate the DB" flow for additive changes.
+- **`prefers-reduced-motion` support** — a `reduceMotion` flag gates every GSAP animation to its instant fallback, and a CSS `@media (prefers-reduced-motion: reduce)` block neutralizes transitions, for users who request reduced motion.
+
+### Changed
+- **Timestamps are stored in UTC** (`datetime('now')` instead of `'localtime'`); the web UI localizes them for display.
+- **Frontend split** — the CSS moved to `public/styles.css` and the `I18N` dictionary to `public/i18n.js` (both served statically, also under `BASE_PATH`); `index.html` slims down accordingly. Pure refactor, no behavior change.
+- **Sanitized error responses** — POST/PUT `/projects` no longer return the raw SQLite message: a duplicate name yields `{"error":"name already exists"}` and any other DB error `{"error":"invalid request"}`, with details logged server-side only.
+
+### Fixed
+- **Cascade delete now actually fires** — the `foreign_keys` pragma is enabled, so deleting a project removes its cards instead of silently orphaning them in the DB.
+- **`PUT /cards/:id` validates the move target** — a non-existent `project_id` now returns 400 (`target project not found`) instead of orphaning the card.
+- **`PUT` no longer blanks required fields** — a blank `name`/`title` returns 400 instead of silently wiping it (optional fields still clear on `""`).
+- **Atomic `position` assignment** — the `MAX(position)+1` SELECT and the INSERT are wrapped in a transaction, so concurrent creates can't collide.
+- **`esc()` now escapes single quotes**, closing a potential attribute-injection XSS vector.
+- **`load()` no longer blanks the board on a network error** — it surfaces a dismissible error banner and keeps the last render.
+
 ## [1.6.0] - 2026-06-30
 
 ### Added

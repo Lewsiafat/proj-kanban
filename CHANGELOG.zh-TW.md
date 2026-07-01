@@ -7,6 +7,28 @@
 
 [English](./CHANGELOG.md) · **繁體中文**
 
+## [1.7.0] - 2026-07-01
+
+針對 REST API 與前端的 code-review 強化（13 項追蹤問題中的 12 項;API 認證刻意延後,仍為 open）。
+
+### 新增
+- **API 測試套件** — 自足式 `node:test` 套件（`test/api.test.js`,以 `npm test` 執行），會在拋棄式 DB 上啟動 server,實測全部 7 個 endpoint 及各項強化修復。此為本 repo 首次自動化測試覆蓋。
+- **Schema migration 機制** — 新增 `meta` 表追蹤 `schema_version`,啟動時將有序的 `migrations` 陣列包在 transaction 內套用（additive `ALTER TABLE ADD COLUMN`），取代先前「改 schema 後砍掉重建 DB」的做法。
+- **`prefers-reduced-motion` 支援** — 新增 `reduceMotion` 旗標,將每個 GSAP 動畫導向即時 fallback,並以 CSS `@media (prefers-reduced-motion: reduce)` 中和過場,照顧要求減少動態效果的使用者。
+
+### 變更
+- **時間戳改以 UTC 儲存**（`datetime('now')`,不再用 `'localtime'`）;網頁前端顯示時再做在地化。
+- **前端拆分** — CSS 移至 `public/styles.css`、`I18N` 字典移至 `public/i18n.js`（皆以靜態方式提供,並掛在 `BASE_PATH` 下）;`index.html` 相應精簡。純重構,行為不變。
+- **錯誤回應脫敏** — POST/PUT `/projects` 不再回傳原始 SQLite 訊息:重複名稱回 `{"error":"name already exists"}`、其他 DB 錯誤回 `{"error":"invalid request"}`,詳細錯誤僅寫入 server log。
+
+### 修正
+- **Cascade delete 現在真的會執行** — 啟用 `foreign_keys` pragma,刪除欄目時會一併刪除其 cards,不再在 DB 裡靜默留下 orphan。
+- **`PUT /cards/:id` 驗證移動目標** — 不存在的 `project_id` 現在回 400（`target project not found`），不再使 card 變 orphan。
+- **`PUT` 不再清空必填欄位** — 空白 `name`/`title` 回 400,不再靜默清除（選填欄位傳 `""` 仍會清空）。
+- **原子化 `position` 指派** — `MAX(position)+1` 的 SELECT 與 INSERT 包進 transaction,並發建立不會撞號。
+- **`esc()` 補上單引號轉義**,封閉潛在的屬性注入 XSS 破口。
+- **`load()` 網路錯誤時不再清空看板** — 改為顯示可關閉的錯誤橫幅並保留上次畫面。
+
 ## [1.6.0] - 2026-06-30
 
 ### 新增

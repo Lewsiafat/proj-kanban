@@ -14,7 +14,7 @@
 - 全 CRUD：新增、編輯、刪除專案與卡片
 - 雙語介面，預設為英文，於 header 一鍵切換為繁體中文（Traditional Chinese）；選擇會持久化於 `localStorage` 的 `kanban-lang` 鍵（純前端，無 API 或 DB 變更）
 - 淺色與深色主題（Direction A「Calm」設計 — sage 綠主色、Mulish 字型、柔和卡片），於語言切換鈕右側一鍵切換；預設跟隨系統偏好，並持久化於 `localStorage` 的 `kanban-theme` 鍵（純前端，無 API 或 DB 變更）
-- 順滑過場動畫：切換視圖與新增/刪除專案欄皆採用克制的 GSAP 淡入淡出過場（無 GSAP 時自動回退為即時行為）
+- 順滑過場動畫：切換視圖與新增/刪除專案欄皆採用克制的 GSAP 淡入淡出過場（無 GSAP 時自動回退為即時行為,並遵循 `prefers-reduced-motion`）
 - REST API，可程式化操作
 
 ## Quick Start
@@ -47,6 +47,7 @@ npm start
 
 ```bash
 npm run dev   # hot-reload with node --watch
+npm test      # 執行 API 測試套件（node --test；於暫存 DB 啟動 server）
 ```
 
 ## API

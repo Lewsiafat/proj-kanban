@@ -14,7 +14,7 @@ A lightweight Kanban-style project status tracker. Each column is a project, eac
 - Full CRUD: create, edit, and delete projects and cards
 - Bilingual UI that defaults to English and switches to Traditional Chinese (繁體中文) with one click in the header; the choice is persisted in `localStorage` under `kanban-lang` (frontend-only — no API or DB change)
 - Light & dark themes (Direction A「Calm」design — sage accent, Mulish type, soft cards) with a one-click toggle right of the language switch; defaults to your system preference and is persisted in `localStorage` under `kanban-theme` (frontend-only — no API or DB change)
-- Smooth transitions: switching views and adding/deleting project columns use restrained GSAP fade transitions (falling back to instant behavior when GSAP is unavailable)
+- Smooth transitions: switching views and adding/deleting project columns use restrained GSAP fade transitions (falling back to instant behavior when GSAP is unavailable, and honoring `prefers-reduced-motion`)
 - REST API for programmatic access
 
 ## Quick Start
@@ -47,6 +47,7 @@ npm start
 
 ```bash
 npm run dev   # hot-reload with node --watch
+npm test      # run the API test suite (node --test; boots the server on a temp DB)
 ```
 
 ## API
