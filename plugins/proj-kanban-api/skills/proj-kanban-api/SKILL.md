@@ -115,8 +115,9 @@ curl -s -X POST "$API/projects/$PID/cards" -H 'Content-Type: application/json' \
 curl -s -X PUT "$API/cards/$CARD_ID" -H 'Content-Type: application/json' \
   -d "{\"project_id\": $TARGET_PID}"
 ```
-The server does **not** verify the target column exists — confirm `$TARGET_PID` is real (via
-`GET /projects`) first, or the card becomes orphaned (see Footguns).
+The server verifies the target column exists — a non-existent `project_id` returns **400**
+`{"error":"target project not found"}` and the card is left where it was. Resolve `$TARGET_PID` via
+`GET /projects` first regardless.
 
 ## Status values
 
@@ -133,22 +134,23 @@ omitted (or blank) status defaults to `active`.
   via the API. The board's visual column/card order lives in the browser's `localStorage`, not the
   server — so the DB `position` does NOT reflect what the user sees. **Do not attempt to reorder over
   the API; it is impossible.** Don't promise the user a specific on-screen order.
-- **`""` overwrites; omit/null preserves — but ONLY on PUT.** The two PUT endpoints update each field
-  with `value ?? old`: an omitted field or explicit `null` keeps the old value, but an empty string
-  `""` is a real value and **wipes** the field. To leave `memo` alone, omit it; send `"memo":""` only
-  when you mean to clear it. (Note: POST is different — it uses `||`, so a blank `color`/`memo`/`status`
-  on create falls back to the default. See references/api.md.)
-- **PUT does not re-validate.** `PUT /projects/:id` and `PUT /cards/:id` do not re-check or re-trim
-  `name`/`title`, so `{"name":""}` or `{"title":""}` will blank that field. Never send `""` for a
-  required field unless you mean it.
+- **On PUT, `""` wipes *optional* fields; *required* fields are guarded.** The two PUT endpoints update
+  each field with `value ?? old`: an omitted field or explicit `null` keeps the old value, but an empty
+  string `""` is a real value that **wipes optional fields** (`memo`, `color`). To leave `memo` alone,
+  omit it; send `"memo":""` only when you mean to clear it. (POST is different — it uses `||`, so a blank
+  `color`/`memo`/`status` on create falls back to the default. See references/api.md.)
+- **Required fields are validated on PUT.** `PUT /projects/:id` with a blank `name`, or `PUT /cards/:id`
+  with a blank `title`, returns **400** (`name required` / `title required`) instead of blanking the
+  field — a stray `{"name":""}`/`{"title":""}` is rejected, not silently destructive.
 - **Cascade delete is destructive and irreversible.** `DELETE /projects/:id` removes the column AND
   every card in it (`ON DELETE CASCADE`). There is no soft-delete and no undo. Confirm intent with the
   user first, especially for a non-empty column (check its `cards` length via `GET /projects`).
-- **Moving a card isn't validated.** `PUT /cards/:id` with a bad `project_id` succeeds (200) and
-  orphans the card — it belongs to a non-existent column and won't appear anywhere in `GET /projects`.
-  Resolve the target id first.
-- **Duplicate column names are rejected** (UNIQUE → 400, on both create and rename). The 400 body
-  carries the raw SQLite message, not a friendly string. Card titles are NOT unique.
+- **Moving a card to a bad column is rejected.** `PUT /cards/:id` with a `project_id` that doesn't
+  exist returns **400** (`target project not found`) — the card is not moved and cannot be orphaned.
+  Resolve the target id via `GET /projects` first anyway.
+- **Duplicate column names are rejected** (UNIQUE → 400, on both create and rename). The 400 body is a
+  generic `{"error":"name already exists"}` (the raw SQLite message is logged server-side, not
+  returned). Card titles are NOT unique.
 
 ## Pre-flight checklist before any mutation
 

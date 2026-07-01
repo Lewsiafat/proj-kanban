@@ -30,7 +30,7 @@ Authoritative per-endpoint reference. Source: `src/index.js` (Express + better-s
 | `name`       | string | **NOT NULL, UNIQUE**                                     |
 | `color`      | string | hex, default `#6366f1`                                   |
 | `position`   | int    | set to `MAX(position)+1` on insert; **never updated** by the API |
-| `created_at` | string | `datetime('now','localtime')`, e.g. `2026-06-19 10:00:00` |
+| `created_at` | string | UTC `datetime('now')`, e.g. `2026-06-19 10:00:00` (UTC; the web UI localizes for display) |
 
 **card** (a status update inside a project):
 
@@ -42,8 +42,8 @@ Authoritative per-endpoint reference. Source: `src/index.js` (Express + better-s
 | `memo`       | string | default `""`                                             |
 | `status`     | string | default `"active"`; **open string** (any value accepted) |
 | `position`   | int    | set to `MAX(position)+1` **within its project** on insert; never updated by the API |
-| `created_at` | string | `datetime('now','localtime')`                            |
-| `updated_at` | string | `datetime('now','localtime')`; **refreshed to now on every `PUT /cards/:id`** |
+| `created_at` | string | UTC `datetime('now')`                                    |
+| `updated_at` | string | UTC `datetime('now')`; **refreshed to now on every `PUT /cards/:id`** |
 
 **status is an open string.** The API/DB accept any value. The web UI only labels/colors
 `active | pending | done | blocked | archived` — use only those to stay UI-compatible.
@@ -60,10 +60,10 @@ The POST and PUT endpoints handle missing/blank fields **differently**:
   - Field explicitly `null` → **keeps old value**.
   - Any non-nullish value, **including `""`, `0`, `false`** → **overwrites** with that value.
 
-  **Footgun:** sending `"memo":""` (or `"name":""`, `"title":""`) on a PUT does NOT mean "leave
-  unchanged" — it **clears the field**. To preserve a field, omit it entirely. PUT also does **not**
-  re-validate or re-trim `name`/`title`, so a PUT can blank a required field. Do not conflate PUT's
-  `??` with POST's `||`.
+  **Footgun:** sending `"memo":""` (or `"color":""`) on a PUT does NOT mean "leave unchanged" — it
+  **clears that optional field**. To preserve a field, omit it entirely. **Required fields are now
+  guarded:** a blank `name` (PUT /projects) or blank `title` (PUT /cards) is rejected with **400**
+  rather than blanking. Do not conflate PUT's `??` with POST's `||`.
 
 ---
 
@@ -130,8 +130,9 @@ Create a column. `position` is auto-set to `MAX(position)+1`.
   `name` is validated with `name?.trim()` (must be present and not whitespace-only) and is **stored
   trimmed**. `color` uses `||` fallback: omitted, `null`, or `""` → `#6366f1`.
 - **400** `{ "error": "name required" }` — `name` missing, `null`, or blank/whitespace-only.
-- **400** `{ "error": "<sqlite msg>" }` — duplicate `name` (UNIQUE) or other DB error. The body is the
-  **raw SQLite message**, e.g. `UNIQUE constraint failed: projects.name`.
+- **400** `{ "error": "name already exists" }` — duplicate `name` (UNIQUE violation). For any other DB
+  error the body is a generic `{ "error": "invalid request" }`; the raw SQLite message is logged
+  server-side, never returned to the client.
 - **200** — the created project object (with assigned `id`, `position`, `created_at`).
 
 ```bash
@@ -164,12 +165,14 @@ Update a column's `name` and/or `color`. **Partial update** via `??`.
   | `name`  | no       | string | `name ?? old` — omitted/`null` keeps old; `""` overwrites |
   | `color` | no       | string | `color ?? old` — omitted/`null` keeps old; `""` overwrites |
 
-  Uses `??`, **not** POST-style `||`: a `""` here is written verbatim (a blank color is NOT reset to
-  `#6366f1`). `name` is **not** re-validated or re-trimmed on update, so `{"name":""}` sets an empty
-  name — avoid.
+  Uses `??`, **not** POST-style `||`: a `""` for `color` is written verbatim (a blank color is NOT reset
+  to `#6366f1`). `name` **is** validated: a blank/whitespace-only `name` is rejected (see below), so
+  `{"name":""}` no longer blanks the column.
 - **404** `{ "error": "not found" }` — `id` does not exist.
-- **400** `{ "error": "<sqlite msg>" }` — DB error, e.g. renaming to a `name` that already exists
-  (`UNIQUE constraint failed: projects.name`).
+- **400** `{ "error": "name required" }` — `name` is present but blank/whitespace-only.
+- **400** `{ "error": "name already exists" }` — renaming to a `name` that already exists (UNIQUE). Any
+  other DB error returns a generic `{ "error": "invalid request" }` (raw SQLite message logged, not
+  returned).
 - **200** — the updated project object.
 
 ```bash
@@ -182,8 +185,9 @@ curl -s -X PUT "$API/projects/1" -H 'Content-Type: application/json' \
   -d '{"color":"#ef4444"}'
 ```
 
-**WHY the `""` footgun matters:** to change ONE field, send ONLY that field. `{"name":""}` blanks the
-name (and likely fails UNIQUE if another blank exists). Never send `""` unless you intend to clear.
+**WHY the `""` footgun matters:** to change ONE field, send ONLY that field. `{"name":""}` is now
+rejected with **400** (`name required`), but `{"color":""}` still overwrites `color` with a blank —
+never send `""` for an optional field unless you intend to clear it.
 
 ---
 
@@ -259,8 +263,8 @@ Update a card's `title`, `memo`, `status`, and/or `project_id`. **Partial update
   | `project_id` | no       | int    | `project_id ?? old` — **moves the card to that project** |
 
   Uses `??` for every field: omitted/`null` keeps old, any other value (including `""`) overwrites.
-  `title` is **not** re-validated or re-trimmed, so `"title":""` produces an empty title (and
-  `"title":null` keeps the old one).
+  **`title` is validated:** a blank `"title":""` is rejected with **400** (`title required`);
+  `"title":null` keeps the old one. Optional `memo`/`status` still accept `""` verbatim.
 - **No reorder:** `position` is not a writable field here.
 - **404** `{ "error": "not found" }` — card `id` does not exist.
 - **200** — the updated card object.
@@ -283,9 +287,9 @@ curl -s -X PUT "$API/cards/5" -H 'Content-Type: application/json' \
   -d '{"project_id":3}'
 ```
 
-**WHY moving is risky:** there is **no validation that the target `project_id` exists**. A wrong id
-succeeds (200) and orphans the card — it belongs to a non-existent column and won't appear under any
-column in `GET /projects`. Resolve the target id with `GET /projects` before moving.
+**Moving is validated:** a `project_id` that doesn't exist is rejected with **400**
+(`target project not found`) — the card is not moved and cannot be orphaned. Resolve the target id with
+`GET /projects` before moving regardless.
 
 ---
 
@@ -314,22 +318,26 @@ curl -s -X DELETE "$API/cards/5"
 - **No lookup by name.** To find any id, `GET /projects` and search. Project `name` is UNIQUE; card
   `title` is NOT — a title may match multiple cards, so disambiguate by `id`/`project_id`.
 - **No batch / transaction.** One mutation per request.
-- **No move validation.** `PUT /cards/:id` with a bad `project_id` silently orphans the card.
-- **Cascade delete.** Deleting a project deletes all its cards, irreversibly.
+- **Cascade delete.** Deleting a project deletes all its cards, irreversibly (`foreign_keys` is ON, so
+  the cascade actually fires).
 
 ## Error summary
 
 | Endpoint              | Code | Body                              | Cause                          |
 |-----------------------|------|-----------------------------------|--------------------------------|
-| POST /projects        | 400  | `{"error":"name required"}`       | blank/missing name             |
-| POST /projects        | 400  | `{"error":"<sqlite msg>"}`        | duplicate name / DB error      |
-| PUT /projects/:id     | 404  | `{"error":"not found"}`           | unknown id                     |
-| PUT /projects/:id     | 400  | `{"error":"<sqlite msg>"}`        | rename collision / DB error    |
-| DELETE /projects/:id  | 404  | `{"error":"not found"}`           | unknown id                     |
-| POST .../cards        | 400  | `{"error":"title required"}`      | blank/missing title            |
-| POST .../cards        | 404  | `{"error":"project not found"}`   | unknown project id             |
-| PUT /cards/:id        | 404  | `{"error":"not found"}`           | unknown card id                |
-| DELETE /cards/:id     | 404  | `{"error":"not found"}`           | unknown card id                |
+| POST /projects        | 400  | `{"error":"name required"}`        | blank/missing name             |
+| POST /projects        | 400  | `{"error":"name already exists"}`  | duplicate name (UNIQUE)        |
+| POST /projects        | 400  | `{"error":"invalid request"}`      | other DB error (detail logged) |
+| PUT /projects/:id     | 400  | `{"error":"name required"}`        | `name` present but blank       |
+| PUT /projects/:id     | 404  | `{"error":"not found"}`            | unknown id                     |
+| PUT /projects/:id     | 400  | `{"error":"name already exists"}`  | rename collision (UNIQUE)      |
+| DELETE /projects/:id  | 404  | `{"error":"not found"}`            | unknown id                     |
+| POST .../cards        | 400  | `{"error":"title required"}`       | blank/missing title            |
+| POST .../cards        | 404  | `{"error":"project not found"}`    | unknown project id             |
+| PUT /cards/:id        | 400  | `{"error":"title required"}`       | `title` present but blank      |
+| PUT /cards/:id        | 400  | `{"error":"target project not found"}` | move to non-existent project |
+| PUT /cards/:id        | 404  | `{"error":"not found"}`            | unknown card id                |
+| DELETE /cards/:id     | 404  | `{"error":"not found"}`            | unknown card id                |
 
 All successful mutations return either the affected object (create/update) or `{"ok":true}` (delete)
 with HTTP **200** — note that even creates return 200, not 201.
